@@ -1,0 +1,425 @@
+# Gravity & Repulsive Clustering Framework
+## A Multi-Scale, Force-Based Approach to Structure Discovery in Embedding Spaces
+
+---
+
+# 1. Overview
+
+This project explores a new class of clustering algorithms inspired by physical systems:
+
+- Gravity-based clustering (attraction → condensation)
+- Repulsive clustering (expansion → separation)
+- Hybrid dynamics (expansion → condensation)
+
+The goal is not to replace all clustering algorithms, but to:
+
+> Build a structure discovery engine that outperforms traditional methods (e.g., HDBSCAN) on:
+- filamentary data
+- hierarchical data
+- overlapping clusters
+- embedding-based applications (text, images, scientific data)
+
+---
+
+# 2. Key Insight
+
+There is no universally optimal clustering algorithm.
+
+Different methods encode different assumptions:
+
+| Method        | Assumption |
+|---------------|-----------|
+| K-Means       | spherical clusters |
+| HDBSCAN       | density-separated clusters |
+| Spectral      | graph connectivity |
+| GMM           | probabilistic mixtures |
+| THIS WORK     | basins of attraction / force equilibria |
+
+We introduce:
+
+> Clusters = basins of attraction in an interaction field  
+or  
+> Clusters = regions of equilibrium under repulsion + cohesion
+
+---
+
+# 3. Two Dual Paradigms
+
+## 3.1 Gravity (Condensation)
+
+- Points attract each other
+- Dense regions accumulate mass
+- Clusters form as attractor basins
+
+Pros:
+- natural hierarchy
+- interpretable dynamics
+- good for multi-scale structure
+
+Cons:
+- risk of total collapse
+- requires repulsion or damping
+
+---
+
+## 3.2 Repulsive Expansion (Dual)
+
+- Start from a compact blob
+- Points repel each other
+- Local constraints preserve structure
+
+Pros:
+- strong separation
+- stable numerics
+- naturally produces embeddings
+
+Cons:
+- requires cohesion constraints
+- may distort global geometry
+
+---
+
+## 3.3 Hybrid (Recommended)
+
+Inspired by cosmology:
+
+1. Expansion phase (repulsion)
+2. Condensation phase (local gravity)
+
+This yields:
+- global separation
+- local clustering
+- multi-scale structure
+
+---
+
+# 4. Core Algorithm Design Space
+
+Each clustering algorithm is defined by:
+
+## 4.1 Representation
+- embedding space (input)
+- normalization strategy
+- distance metric (L2, cosine, learned)
+
+---
+
+## 4.2 Graph Construction
+- kNN graph
+- mutual kNN
+- adaptive radius
+- weighted edges
+
+---
+
+## 4.3 Mass / Density Function
+
+Examples:
+- constant mass
+- local density (kNN-based)
+- centrality
+- learned importance
+
+m_i = f(local_density_i)
+
+---
+
+## 4.4 Force Laws
+
+### Gravity (attraction)
+F ∝ 1 / distance^α
+
+### Repulsion
+F ∝ 1 / distance^β (β > α)
+
+### Combined
+F = attraction − repulsion
+
+---
+
+## 4.5 Dynamics
+
+Options:
+- continuous motion (N-body style)
+- graph-based flow (preferred)
+- discrete updates
+
+x_i(t+1) = x_i(t) + η * F_i
+
+With:
+- damping
+- annealing schedule
+- step limits
+
+---
+
+## 4.6 Cluster Extraction
+
+Options:
+- basin of attraction (mode seeking)
+- connected components
+- density thresholding
+- persistence across scale
+
+---
+
+## 4.7 Hierarchy
+
+Clusters should exist at multiple scales:
+
+- local attractors
+- merged basins
+- global structure
+
+Track:
+- merge events
+- stability across parameters
+
+---
+
+# 5. Recommended First Algorithm (Graph Gravity)
+
+## Step 1: Build kNN graph
+
+## Step 2: Estimate density
+ρ_i = average distance to neighbors
+
+## Step 3: Assign mass
+m_i = (ρ_i + ε)^γ
+
+## Step 4: Define potential
+Φ(i) = Σ_j m_j / (graph_distance(i,j)^α)
+
+## Step 5: Flow rule
+Each node moves to neighbor with highest Φ
+
+Repeat until convergence.
+
+## Step 6: Clusters
+Nodes ending at same maximum = cluster
+
+---
+
+# 6. Repulsive Variant (Expansion Model)
+
+## Step 1: Build kNN graph
+
+## Step 2: Initialize points in compact latent space
+
+## Step 3: Forces
+- global repulsion
+- local attraction (graph edges)
+
+## Step 4: Simulate dynamics
+
+## Step 5: Extract clusters
+- spatial separation
+- density regions
+- connected components
+
+---
+
+# 7. Hybrid Algorithm (Expansion → Condensation)
+
+## Phase 1: Repulsive expansion
+- separate global structure
+
+## Phase 2: Local gravity
+- condense clusters
+
+## Phase 3: Basin extraction
+
+---
+
+# 8. Benchmark Datasets
+
+## 8.1 Synthetic (must pass)
+
+- two moons
+- spirals
+- concentric circles
+- anisotropic Gaussians
+- varying density blobs
+
+## 8.2 Structure-focused (critical)
+
+- filament + galaxy dataset
+- bridge-connected clusters
+- cluster-within-cluster
+
+## 8.3 Real-world (core evaluation)
+
+### Text / Topic Modeling
+- 20 Newsgroups
+- AG News
+- PubMed
+- arXiv
+
+### Retrieval
+- MS MARCO
+- BEIR
+
+### Graph
+- Cora
+- ogbn-arxiv
+
+### Images
+- CIFAR-10 embeddings
+- ImageNet embeddings
+
+### Domain-specific
+- handwritten initials dataset
+
+---
+
+# 9. Evaluation Metrics
+
+## 9.1 External (if labels exist)
+
+- Adjusted Rand Index (ARI)
+- Normalized Mutual Information (NMI)
+- Pairwise F1
+
+---
+
+## 9.2 Structural (unsupervised)
+
+### Stability (MOST IMPORTANT)
+- consistency under noise / resampling
+
+### Persistence across scale
+- clusters survive parameter changes
+
+### Density coherence
+- local support within clusters
+
+### Separation
+- inter vs intra cluster distance
+
+### Parsimony
+- avoid over-fragmentation
+
+---
+
+## 9.3 Task-based (most important in practice)
+
+### Retrieval
+- Recall@k
+- Precision@k
+
+### Downstream performance
+- classification
+- anomaly detection
+
+---
+
+# 10. Fitness Function (for Agentic Optimization)
+
+Fitness =
+
++ stability  
++ retrieval quality  
++ density coherence  
++ persistence  
+− cluster count penalty  
+− runtime  
+
+If labels exist:
++ ARI
+
+---
+
+# 11. What “Winning” Means
+
+## NOT:
+- slightly higher silhouette score
+
+## YES:
+
+### 1. Structural win
+- preserves filaments and manifolds
+
+### 2. Hierarchical win
+- reveals meaningful multi-scale clusters
+
+### 3. Dynamics win
+- interpretable clustering process
+
+### 4. Practical win
+- improves downstream tasks
+
+---
+
+# 12. Target Use Cases
+
+- topic modeling
+- embedding clustering
+- scientific literature mapping
+- identity grouping (e.g., handwriting)
+- retrieval systems
+- graph community detection
+
+---
+
+# 13. Minimal Experimental Plan
+
+1. Implement:
+   - HDBSCAN (baseline)
+   - KMeans
+   - Graph Gravity (v1)
+
+2. Evaluate on:
+   - synthetic filament dataset
+   - topic dataset
+   - initials dataset
+
+3. Track:
+   - ARI / F1
+   - Recall@k
+   - stability
+
+4. Iterate:
+   - force laws
+   - mass functions
+   - merge rules
+
+---
+
+# 14. Key Hypothesis
+
+> Density-based clustering is insufficient for capturing  
+> multi-scale, filamentary, and overlapping structure.
+
+> A force-based (gravity + repulsion) model better captures:
+- hierarchical organization
+- transitional regions
+- real-world embedding structure
+
+---
+
+# 15. Long-Term Vision
+
+This is not just a clustering algorithm.
+
+This is:
+
+> A general framework for discovering structure in high-dimensional spaces
+
+Potential extensions:
+- learned force laws
+- neural energy models
+- integration with LLM embeddings
+- real-time clustering systems
+
+---
+
+# 16. Next Steps
+
+- implement Graph Gravity v1
+- generate filament toy dataset
+- benchmark vs HDBSCAN
+- iterate via agentic search
+
+---
+
+# End
