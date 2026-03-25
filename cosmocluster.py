@@ -9,8 +9,32 @@ Implements:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Callable, Literal
 
 import numpy as np
+
+
+@dataclass(frozen=True)
+class FieldWeights:
+    """Relative force weights for one simulation step."""
+
+    repulsion: float = 0.0
+    cohesion: float = 0.0
+    gravity: float = 0.0
+
+
+@dataclass(frozen=True)
+class FieldPulse:
+    """Square-wave pulse definition on normalized phase progress [0, 1]."""
+
+    start: float = 0.0
+    end: float = 1.0
+    period: float = 0.2
+    duty_cycle: float = 0.5
+    phase_offset: float = 0.0
+    repulsion_gain: float = 0.0
+    cohesion_gain: float = 0.0
+    gravity_gain: float = 0.0
 
 
 @dataclass
@@ -29,6 +53,9 @@ class HybridParams:
     mass_power: float = 1.0
     max_repulsion_neighbors: int = 64
     random_state: int | None = None
+    field_mode: Literal["cosmology", "pulsed"] = "cosmology"
+    field_pulses: tuple[FieldPulse, ...] = ()
+    field_schedule: Callable[[str, int, int], FieldWeights] | None = None
 
 
 class CosmoClusterMinimal:
@@ -124,9 +151,9 @@ def _expansion_phase(
     rep_cap = min(params.max_repulsion_neighbors, n - 1)
 
     for t in range(params.expansion_steps):
-        progress = t / max(1, params.expansion_steps - 1)
-        w_rep = (1.0 - progress) ** 1.2
-        w_coh = 0.2 + 0.8 * progress
+        weights = _resolve_field_weights("expansion", t, params.expansion_steps, params)
+        w_rep = weights.repulsion
+        w_coh = weights.cohesion
 
         force = np.zeros_like(z)
         dmat = _pairwise_distances(z)
@@ -165,8 +192,8 @@ def _gravity_phase(
     vel = np.zeros_like(z)
 
     for t in range(params.gravity_steps):
-        progress = t / max(1, params.gravity_steps - 1)
-        w_grav = 0.3 + 0.7 * progress
+        weights = _resolve_field_weights("gravity", t, params.gravity_steps, params)
+        w_grav = weights.gravity
 
         force = np.zeros_like(z)
         for i in range(z.shape[0]):
@@ -208,3 +235,74 @@ def _extract_basins(graph_idx: np.ndarray, masses: np.ndarray) -> tuple[np.ndarr
     compact_to_node = uniq
     attractor_node = compact_to_node[labels]
     return attractor_node, labels
+
+
+def _resolve_field_weights(phase: str, step: int, total_steps: int, params: HybridParams) -> FieldWeights:
+    if params.field_schedule is not None:
+        weights = params.field_schedule(phase, step, total_steps)
+        return _sanitize_field_weights(weights)
+
+    if params.field_mode == "cosmology":
+        return _default_cosmology_weights(phase, step, total_steps)
+    if params.field_mode == "pulsed":
+        return _pulsed_field_weights(phase, step, total_steps, params.field_pulses)
+    raise ValueError(f"Unsupported field_mode={params.field_mode!r}.")
+
+
+def _default_cosmology_weights(phase: str, step: int, total_steps: int) -> FieldWeights:
+    progress = step / max(1, total_steps - 1)
+    if phase == "expansion":
+        return FieldWeights(
+            repulsion=(1.0 - progress) ** 1.2,
+            cohesion=0.2 + 0.8 * progress,
+            gravity=0.0,
+        )
+    if phase == "gravity":
+        return FieldWeights(
+            repulsion=0.0,
+            cohesion=0.0,
+            gravity=0.3 + 0.7 * progress,
+        )
+    raise ValueError(f"Unsupported phase={phase!r}.")
+
+
+def _pulsed_field_weights(
+    phase: str,
+    step: int,
+    total_steps: int,
+    pulses: tuple[FieldPulse, ...],
+) -> FieldWeights:
+    base = _default_cosmology_weights(phase, step, total_steps)
+    progress = step / max(1, total_steps - 1)
+
+    repulsion = base.repulsion
+    cohesion = base.cohesion
+    gravity = base.gravity
+
+    for pulse in pulses:
+        if progress < pulse.start or progress > pulse.end:
+            continue
+
+        width = max(pulse.end - pulse.start, 1e-9)
+        local = (progress - pulse.start) / width
+        if pulse.period <= 1e-9:
+            active = True
+        else:
+            cycle_pos = ((local + pulse.phase_offset) % pulse.period) / pulse.period
+            active = cycle_pos < pulse.duty_cycle
+        if not active:
+            continue
+
+        repulsion += pulse.repulsion_gain
+        cohesion += pulse.cohesion_gain
+        gravity += pulse.gravity_gain
+
+    return _sanitize_field_weights(FieldWeights(repulsion=repulsion, cohesion=cohesion, gravity=gravity))
+
+
+def _sanitize_field_weights(weights: FieldWeights) -> FieldWeights:
+    return FieldWeights(
+        repulsion=max(0.0, float(weights.repulsion)),
+        cohesion=max(0.0, float(weights.cohesion)),
+        gravity=max(0.0, float(weights.gravity)),
+    )
