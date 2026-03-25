@@ -175,6 +175,25 @@ Evaluate:
 
 ---
 
+
+## Performance Testing Suite
+
+Run the benchmark harness against common clustering algorithms (including HDBSCAN when installed):
+
+```bash
+python performance_suite.py --n-samples 1500 --repeats 3 --outdir artifacts/performance
+```
+
+Outputs include:
+- `benchmark_results.csv`: per-run metrics (ARI, NMI, silhouette, Davies-Bouldin, CH, runtime).
+- `benchmark_summary.csv`: aggregate ranking by algorithm.
+- `REPORT.md`: markdown report with tables and embedded visualizations.
+- `quality_bar.png`, `runtime_boxplot.png`, `ari_heatmap.png`: visual summaries.
+- `geometry_diagnostics.html` + `clusters_html/*.html`: interactive geometry and colorized cluster scatter plots per synthetic case.
+- These artifacts are generated locally at runtime and are ignored by git.
+
+The suite always runs `CosmoClusterMinimal`, K-Means, DBSCAN, and Agglomerative; it adds HDBSCAN automatically if the `hdbscan` package is available.
+
 ## Production Integration Strategy
 
 CosmoCluster should feel natural in existing Python ML stacks.
