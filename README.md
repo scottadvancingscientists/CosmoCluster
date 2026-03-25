@@ -322,3 +322,34 @@ CosmoCluster aims to become both:
 - a research platform for discovering multi-scale structure through physically inspired dynamics.
 
 The standard for progress is not just better clusters, but **repeatable evidence**: robust experiments, frequent evaluation, strong visual communication, and clear comparisons against established baselines.
+
+---
+
+## Minimal Hybrid Prototype (Initial Implementation)
+
+A minimal reference implementation now exists in `cosmocluster.py` with three explicit stages:
+
+1. **Expansion phase**: global repulsion + local graph cohesion.
+2. **Gravity phase**: mass-weighted attraction on the kNN graph.
+3. **Basin extraction**: graph ascent to local mass attractors.
+
+Quick start:
+
+```python
+import numpy as np
+from cosmocluster import CosmoClusterMinimal, HybridParams
+
+# X: (n_samples, n_features)
+X = np.random.randn(300, 8)
+
+model = CosmoClusterMinimal(
+    HybridParams(k=12, expansion_steps=50, gravity_steps=50, random_state=42)
+)
+labels = model.fit_predict(X)
+
+print(labels.shape)
+print(np.unique(labels).size, "clusters")
+```
+
+This is intentionally simple and CPU-friendly so we can iterate quickly on
+force laws, schedules, diagnostics, and extraction strategies.
