@@ -146,6 +146,8 @@ Purpose:
 - verify gravity recovers local structure
 - stress-test hyperparameter sensitivity
 
+Implemented starter suite: `synthetic_suite.py::create_hdbscan_challenge_suite()` with 10 challenge structures (bridges, filaments, gapped rings, spirals, hub-spoke, ladder manifold, bottlenecks, shell-core, hierarchical subclusters).
+
 ### Stage B: Topic Modeling / Text Embeddings
 
 Target workflow:
