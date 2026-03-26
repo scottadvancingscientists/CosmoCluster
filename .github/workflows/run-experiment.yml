@@ -212,9 +212,9 @@ jobs:
           PY
       - name: Build index
         run: |
-          python scripts/build_pages_index.py
           mkdir -p site/runs
           cp -R outputs/runs/* site/runs/ 2>/dev/null || true
+          python scripts/build_pages_index.py
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
