@@ -35,6 +35,10 @@ on:
         description: Notes for this run
         required: false
         default: ""
+      allow_demo_config:
+        description: Allow demo/dummy/synthetic config (not recommended)
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -56,6 +60,58 @@ jobs:
           pip install -r requirements.txt
       - name: Validate config
         run: python scripts/validate_config.py "${{ github.event.inputs.config_path }}"
+      - name: Enforce meaningful experiment config
+        env:
+          CONFIG_PATH: ${{ github.event.inputs.config_path }}
+          ALLOW_DEMO_CONFIG: ${{ github.event.inputs.allow_demo_config }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import sys
+          import yaml
+
+          config_path = Path(os.environ["CONFIG_PATH"])
+          allow_demo = os.environ.get("ALLOW_DEMO_CONFIG", "").strip().lower() in {
+              "1",
+              "true",
+              "yes",
+              "on",
+          }
+          cfg = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+
+          blocked_reasons: list[str] = []
+          task_type = str(cfg.get("task_type", "")).strip().lower()
+          dataset_name = str(cfg.get("dataset_name", "")).strip().lower()
+          experiment_name = str(cfg.get("experiment_name", "")).strip().lower()
+          tags = [str(tag).strip().lower() for tag in (cfg.get("tags") or []) if str(tag).strip()]
+
+          if task_type == "dummy":
+              blocked_reasons.append("task_type is 'dummy'")
+          if any(token in dataset_name for token in ("synthetic", "dummy", "toy", "demo")):
+              blocked_reasons.append(f"dataset_name looks non-production: '{cfg.get('dataset_name', '')}'")
+          if any(token in experiment_name for token in ("synthetic", "dummy", "toy", "demo", "example")):
+              blocked_reasons.append(f"experiment_name looks non-production: '{cfg.get('experiment_name', '')}'")
+          if any(tag in {"dummy", "synthetic", "toy", "demo", "example"} for tag in tags):
+              blocked_reasons.append(f"tags include demo-like markers: {tags}")
+
+          if blocked_reasons and not allow_demo:
+              print("Refusing to run a demo/non-meaningful experiment config by default.", file=sys.stderr)
+              print("Reasons:", file=sys.stderr)
+              for reason in blocked_reasons:
+                  print(f"- {reason}", file=sys.stderr)
+              print(
+                  "To intentionally run a demo config, set workflow input "
+                  "'allow_demo_config' to true.",
+                  file=sys.stderr,
+              )
+              raise SystemExit(1)
+
+          print(
+              f"meaningful-config-check: pass (allow_demo_config={allow_demo}, "
+              f"reasons={blocked_reasons})"
+          )
+          PY
       - name: Launch run
         id: launch
         env:
