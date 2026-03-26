@@ -1,10 +1,39 @@
 from __future__ import annotations
 
+import datetime as dt
 import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+
+def _load_metrics(run_dir: Path) -> dict[str, str]:
+    metrics_path = run_dir / "metrics.json"
+    if not metrics_path.exists():
+        return {}
+
+    try:
+        data = json.loads(metrics_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+    out: dict[str, str] = {}
+    for key in ("accuracy", "f1", "loss"):
+        value = data.get(key)
+        if isinstance(value, int | float):
+            out[key] = f"{value:.4f}"
+    return out
+
+
+def _fmt_created_at(iso_ts: str) -> str:
+    if not iso_ts:
+        return "unknown"
+    try:
+        parsed = dt.datetime.fromisoformat(iso_ts.replace("Z", "+00:00"))
+    except ValueError:
+        return iso_ts
+    return parsed.strftime("%Y-%m-%d %H:%M UTC")
 
 
 def main() -> None:
@@ -18,18 +47,55 @@ def main() -> None:
         if not m.exists():
             continue
         manifest = json.loads(m.read_text(encoding="utf-8"))
-        rows.append(manifest)
+        rows.append(
+            {
+                "run_id": manifest.get("run_id", run_dir.name),
+                "status": manifest.get("status", "unknown"),
+                "backend": manifest.get("backend", "unknown"),
+                "created_at": _fmt_created_at(manifest.get("created_at", "")),
+                "metrics": _load_metrics(run_dir),
+            }
+        )
 
     html = [
-        "<!doctype html><html><head><meta name='viewport' content='width=device-width, initial-scale=1'>",
-        "<style>body{font-family:-apple-system;padding:12px} .card{border:1px solid #ddd;border-radius:10px;padding:10px;margin:8px 0}</style>",
-        "</head><body><h1>Recent runs</h1>",
+        "<!doctype html>",
+        "<html><head>",
+        "<meta charset='utf-8'>",
+        "<meta name='viewport' content='width=device-width, initial-scale=1'>",
+        "<title>CosmoCluster runs</title>",
+        "<link rel='stylesheet' href='../reports/static/styles.css'>",
+        "</head><body>",
+        "<main>",
+        "<section class='card'>",
+        "<h1 style='margin:.2rem 0'>Recent runs</h1>",
+        "<p class='muted' style='margin:0'>Phone-first dashboard for latest experiment artifacts.</p>",
+        "</section>",
     ]
-    for r in rows:
+
+    if not rows:
         html.append(
-            f"<div class='card'><div><b>{r['run_id']}</b> ({r['status']})</div><a href='runs/{r['run_id']}/report/index.html'>Open report</a></div>"
+            "<section class='card'><p>No runs found yet. Trigger <code>run-experiment</code> from GitHub Actions.</p></section>"
         )
-    html.append("</body></html>")
+
+    for r in rows:
+        metric_html = " ".join(
+            f"<span class='badge metric-badge'>{k}: {v}</span>" for k, v in r["metrics"].items()
+        ) or "<span class='muted'>No metrics captured</span>"
+        html.append(
+            "".join(
+                [
+                    "<section class='card'>",
+                    f"<div><strong>{r['run_id']}</strong></div>",
+                    f"<div class='badge {'ok' if r['status'] == 'completed' else 'bad'}'>{r['status']}</div>",
+                    f"<p class='muted' style='margin:.5rem 0'>Backend: {r['backend']} · {r['created_at']}</p>",
+                    f"<div style='display:flex;gap:8px;flex-wrap:wrap'>{metric_html}</div>",
+                    f"<p style='margin:.75rem 0 0 0'><a href='runs/{r['run_id']}/report/index.html'>Open report</a></p>",
+                    "</section>",
+                ]
+            )
+        )
+
+    html.extend(["</main>", "</body></html>"])
 
     (site_root / "index.html").write_text("\n".join(html), encoding="utf-8")
 

@@ -1,6 +1,13 @@
-# CosmoCluster Phone-First Experiment Loop (Phase 1)
+# CosmoCluster Phone-First Experiment Loop (Phase 1 + Phase 2)
 
-This repository now includes a **phone-first ML experiment loop foundation**. Phase 1 focuses on a complete dummy end-to-end workflow so you can control experiments from GitHub (including GitHub Mobile on iPhone), while compute/orchestration happens via GitHub Actions.
+This repository now includes a **phone-first ML experiment loop foundation**. Phase 1 established the end-to-end workflow, and Phase 2 extends the mobile UX with a richer GitHub Pages run dashboard for quick triage from GitHub Mobile on iPhone.
+
+
+## Roadmap status
+
+- ✅ **Phase 1:** deterministic run contract, dummy execution pipeline, run/comparison reports, CI wiring
+- ✅ **Phase 2:** mobile-first Pages index with status badges, backend metadata, and top metrics on each run card
+- 🔜 **Phase 3 (next):** backend expansion (Modal/GCP), queueing/retries, and richer experiment controls
 
 ## What this implements
 
@@ -63,6 +70,18 @@ After a run, open:
      - `PYTHON_VERSION` (e.g. `3.11`)
      - `REPORT_SITE_BASE_URL` (optional)
 4. In **Settings → Pages**, set source to **GitHub Actions**.
+
+
+### Troubleshooting GitHub Pages 404 in CI
+
+If `publish-pages` fails with `HttpError: Not Found` on a URL like `.../rest/pages/pages#get-a-...-pages-site`, the repo usually does not have Pages enabled yet.
+
+1. Open **Settings → Pages** in your repository.
+2. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+3. Ensure Actions can write Pages artifacts: **Settings → Actions → General → Workflow permissions → Read and write permissions**.
+4. Re-run **Actions → publish-pages**.
+
+The workflow now includes a preflight check that fails early with these exact steps if Pages is missing.
 
 ## Standard run contract
 
