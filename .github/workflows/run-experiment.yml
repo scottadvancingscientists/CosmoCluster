@@ -101,15 +101,7 @@ jobs:
         run: |
           MODAL_MODE="n/a"
           if [ -f "${{ steps.launch.outputs.run_dir }}/collect_metadata.json" ]; then
-            MODAL_MODE=$(python - <<'PY'
-              import json
-              from pathlib import Path
-
-              path = Path("${{ steps.launch.outputs.run_dir }}/collect_metadata.json")
-              data = json.loads(path.read_text(encoding="utf-8"))
-              print(data.get("mode", "unknown"))
-              PY
-            )
+            MODAL_MODE=$(python -c 'import json, pathlib; path = pathlib.Path("${{ steps.launch.outputs.run_dir }}/collect_metadata.json"); data = json.loads(path.read_text(encoding="utf-8")); print(data.get("mode", "unknown"))')
           fi
           echo "## Experiment run" >> $GITHUB_STEP_SUMMARY
           echo "- Run dir: ${{ steps.launch.outputs.run_dir }}" >> $GITHUB_STEP_SUMMARY
