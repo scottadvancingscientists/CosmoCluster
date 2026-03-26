@@ -7,7 +7,7 @@ This repository now includes a **phone-first ML experiment loop foundation**. Ph
 
 - ✅ **Phase 1:** deterministic run contract, dummy execution pipeline, run/comparison reports, CI wiring
 - ✅ **Phase 2:** mobile-first Pages index with status badges, backend metadata, and top metrics on each run card
-- 🔜 **Phase 3 (next):** backend expansion (Modal/GCP), queueing/retries, and richer experiment controls
+- 🚧 **Phase 3 (in progress):** Modal-first backend defaults, queueing/retries, and richer experiment controls
 
 ## What this implements
 
@@ -22,14 +22,14 @@ This repository now includes a **phone-first ML experiment loop foundation**. Ph
 ## Architecture (Phase 1)
 
 - **Control plane:** GitHub PRs + GitHub Actions + GitHub Mobile
-- **Compute plane:** `LocalRunner` dummy backend (extensible to Modal/GCP)
+- **Compute plane:** `ModalRunner` starter backend (with local artifact-compatible collection), plus Local/GCP options
 - **Artifact plane:** Actions artifacts + GitHub Pages content
 
 ## Repo structure
 
 - `experiments/` experiment registry, configs, and schema
 - `src/` run launcher, report/comparison generation, utility modules
-- `runners/` backend abstraction (`Runner`, `LocalRunner`, placeholders for Modal/GCP)
+- `runners/` backend abstraction (`Runner`, `LocalRunner`, `ModalRunner`, placeholder for GCP)
 - `reports/` HTML templates and shared styles
 - `scripts/` CLI entrypoints for validation and packaging
 - `.github/workflows/` CI + run + Pages workflows
@@ -42,7 +42,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 python scripts/validate_config.py experiments/configs/example_baseline.yaml
-python src/launch_run.py --config experiments/configs/example_baseline.yaml --backend local --notes "local smoke"
+python src/launch_run.py --config experiments/configs/example_baseline.yaml --backend modal --notes "modal smoke"
 ```
 
 After a run, open:
@@ -66,7 +66,7 @@ After a run, open:
      - `GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT`
      - `OPENAI_API_KEY` (only if you add LLM summaries)
    - Variables:
-     - `DEFAULT_BACKEND` (e.g. `local`)
+     - `DEFAULT_BACKEND` (e.g. `modal`)
      - `PYTHON_VERSION` (e.g. `3.11`)
      - `REPORT_SITE_BASE_URL` (optional)
 4. In **Settings → Pages**, set source to **GitHub Actions**.
@@ -82,6 +82,18 @@ If `publish-pages` fails with `HttpError: Not Found` on a URL like `.../rest/pag
 4. Re-run **Actions → publish-pages**.
 
 The workflow now includes a preflight check that fails early with these exact steps if Pages is missing.
+It also opts JavaScript-based actions into Node.js 24 ahead of the June 2, 2026 default change.
+
+## Modal-first usage notes (Phase 3 starter)
+
+- The default example config (`experiments/configs/example_baseline.yaml`) now uses `compute_target.backend: modal`.
+- `ModalRunner` currently preserves the existing run artifact contract and writes Modal metadata to:
+  - `collect_metadata.json`
+  - `logs/modal_runner.log`
+- To run in **credentialed** mode, configure:
+  - `MODAL_TOKEN_ID`
+  - `MODAL_TOKEN_SECRET`
+- Without those secrets, the runner uses a safe **simulated** mode while keeping reports/artifacts intact for iPhone triage.
 
 ## Standard run contract
 
