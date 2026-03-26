@@ -69,6 +69,12 @@ def main() -> None:
         "<section class='card'>",
         "<h1 style='margin:.2rem 0'>Recent runs</h1>",
         "<p class='muted' style='margin:0'>Phone-first dashboard for latest experiment artifacts.</p>",
+        (
+            f"<p style='margin:.75rem 0 0 0'><a class='button-link' href='runs/{rows[0]['run_id']}/report/index.html'>"
+            "Open latest report</a></p>"
+            if rows
+            else ""
+        ),
         "</section>",
     ]
 
@@ -89,7 +95,12 @@ def main() -> None:
                     f"<div class='badge {'ok' if r['status'] == 'completed' else 'bad'}'>{r['status']}</div>",
                     f"<p class='muted' style='margin:.5rem 0'>Backend: {r['backend']} · {r['created_at']}</p>",
                     f"<div style='display:flex;gap:8px;flex-wrap:wrap'>{metric_html}</div>",
-                    f"<p style='margin:.75rem 0 0 0'><a href='runs/{r['run_id']}/report/index.html'>Open report</a></p>",
+                    (
+                        "<p style='margin:.75rem 0 0 0;display:flex;gap:8px;flex-wrap:wrap'>"
+                        f"<a class='button-link' href='runs/{r['run_id']}/report/index.html'>Open report</a>"
+                        f"<a class='button-link secondary' href='runs/{r['run_id']}/artifacts.zip'>Download .zip</a>"
+                        "</p>"
+                    ),
                     "</section>",
                 ]
             )

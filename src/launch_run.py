@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import random
-import time
+import shutil
 import subprocess
 import sys
+import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,14 +15,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from runners.gcp_batch_runner import GCPBatchRunner
 from runners.local_runner import LocalRunner
 from runners.modal_runner import ModalRunner
-from src.evaluate import run_dummy_eval
 from src.make_report import generate_run_report
-from src.train import run_dummy_train
+from src.real_experiment import run_real_experiment
 from src.utils.config import load_and_validate_config
 from src.utils.io import ensure_dir, write_yaml
 from src.utils.manifest import utc_now_iso, write_manifest
 from src.utils.metrics import write_metrics
-from src.utils.plotting import make_dummy_plots
+from src.utils.plotting import make_run_plots
 
 
 def git_short_sha() -> str:
@@ -57,31 +56,6 @@ def get_runner(name: str):
         return GCPBatchRunner()
     raise ValueError(f"Unsupported backend: {name}")
 
-
-
-
-def synthesize_metrics(config: dict) -> dict[str, float]:
-    seed = int(config.get("seed", 0))
-    hp = config.get("hyperparameters", {})
-    epochs = int(hp.get("epochs", 20))
-    learning_rate = float(hp.get("learning_rate", 1e-3))
-    batch_size = int(hp.get("batch_size", 64))
-
-    rng = random.Random(seed)
-    training_gain = min(0.08, max(0.0, epochs / 800))
-    lr_penalty = min(0.05, abs(learning_rate - 1e-3) * 30)
-    accuracy = min(0.98, max(0.55, 0.80 + training_gain - lr_penalty + rng.uniform(-0.03, 0.03)))
-    f1 = min(0.97, max(0.50, accuracy - 0.012 + rng.uniform(-0.015, 0.015)))
-    loss = min(0.90, max(0.05, 1.05 - accuracy + rng.uniform(-0.03, 0.03)))
-    latency_ms = max(4.0, (220.0 / max(1, batch_size)) + rng.uniform(2.0, 6.0))
-
-    return {
-        "accuracy": round(accuracy, 4),
-        "f1": round(f1, 4),
-        "loss": round(loss, 4),
-        "latency_ms": round(latency_ms, 4),
-    }
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -112,20 +86,27 @@ def main() -> None:
     errors = []
 
     try:
-        metrics = synthesize_metrics(config)
-        epochs = int(config.get("hyperparameters", {}).get("epochs", 20))
-        run_dummy_train(run_dir / "logs/train.log", epochs=epochs, final_loss=metrics["loss"])
-        run_dummy_eval(run_dir / "logs/eval.log", accuracy=metrics["accuracy"], f1=metrics["f1"])
+        real_result = run_real_experiment(config, run_dir)
+        metrics = real_result.metrics
         write_metrics(run_dir, metrics)
-        make_dummy_plots(run_dir / "figures", run_dir / "plotly")
-        (run_dir / "checkpoints/best.ckpt").write_text("dummy-checkpoint", encoding="utf-8")
+        make_run_plots(
+            run_dir / "figures",
+            run_dir / "plotly",
+            case_name=real_result.case_name,
+            y_true=real_result.y_true,
+            y_pred=real_result.y_pred,
+            epochs=real_result.epochs,
+        )
+        (run_dir / "checkpoints/best.ckpt").write_text("cosmocluster-minimal-checkpoint", encoding="utf-8")
         (run_dir / "run_summary.md").write_text(
             "\n".join(
                 [
                     "# Run Summary",
                     "",
-                    "Synthetic end-to-end run completed successfully.",
+                    "Real synthetic clustering run completed successfully.",
                     "",
+                    f"- case: {real_result.case_name}",
+                    f"- fit_seconds: {real_result.fit_seconds:.4f}",
                     f"- accuracy: {metrics['accuracy']}",
                     f"- f1: {metrics['f1']}",
                     f"- loss: {metrics['loss']}",
@@ -225,6 +206,9 @@ def main() -> None:
     }
     write_manifest(run_dir / "manifest.json", manifest)
     report_path = generate_run_report(run_dir)
+    archive_path = shutil.make_archive(str(run_dir / "artifacts"), "zip", root_dir=run_dir)
+    if archive_path:
+        print(f"ARCHIVE={archive_path}")
     print(f"RUN_ID={run_id}")
     print(f"RUN_DIR={run_dir}")
     print(f"REPORT={report_path}")
