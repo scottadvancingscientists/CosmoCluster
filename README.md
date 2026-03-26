@@ -67,7 +67,7 @@ That is expected for this repo: the workflow name is **`run-experiment`**, and G
    - `allow_demo_config` (defaults to `true` for the included demo configs; set to `false` when using production configs)
 7. Tap the green **Run workflow** confirm button.
 8. Open the new run entry to monitor status and download artifacts.
-   - Tip: each run card now includes a one-tap `.zip` download link and the report has a large **Download all artifacts** button for iPhone Safari.
+   - Tip: each run card now includes **Open report**, **Browse artifacts**, and one-tap `.zip` download links for iPhone Safari.
 
 ### If you only see “New workflow”
 
@@ -189,6 +189,7 @@ Then run **Actions → run-experiment** with `backend=modal`.
 
 - In run artifacts, inspect `logs/modal_runner.log`.
 - In the run directory, inspect `collect_metadata.json`.
+- If credentials are active, the log should explicitly say **credentialed mode** and that tokens were detected.
 
 If credentials are missing, this project intentionally falls back to simulated runner orchestration while still preserving real local experiment outputs and report artifacts.
 

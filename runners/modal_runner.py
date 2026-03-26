@@ -61,9 +61,13 @@ class ModalRunner(Runner):
             json.dumps(metadata, indent=2), encoding="utf-8"
         )
         (output_dir / "logs/modal_runner.log").write_text(
-            "ModalRunner completed in "
-            f"{metadata['mode']} mode. "
-            "Set MODAL_TOKEN_ID and MODAL_TOKEN_SECRET for credentialed mode.\n",
+            (
+                "ModalRunner completed in credentialed mode. "
+                "MODAL_TOKEN_ID and MODAL_TOKEN_SECRET were detected.\n"
+                if metadata["mode"] == "credentialed"
+                else "ModalRunner completed in simulated mode. "
+                "Set MODAL_TOKEN_ID and MODAL_TOKEN_SECRET for credentialed mode.\n"
+            ),
             encoding="utf-8",
         )
         return output_dir
