@@ -20,7 +20,7 @@ artifact_policy:
   save_plotly: true
   save_figures: true
 compute_target:
-  backend: local
+  backend: modal
   instance_type: cpu-small
 report_options:
   include_plotly: true

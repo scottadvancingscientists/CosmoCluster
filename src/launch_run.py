@@ -59,7 +59,7 @@ def get_runner(name: str):
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
-    parser.add_argument("--backend", default="local")
+    parser.add_argument("--backend", default="")
     parser.add_argument("--notes", default="")
     args = parser.parse_args()
 
@@ -103,8 +103,15 @@ def main() -> None:
     frozen_config_path = run_dir / "config_frozen.yaml"
     write_yaml(frozen_config_path, config)
 
-    runner = get_runner(args.backend)
-    run_spec = {"run_id": run_id, "local_output_dir": str(run_dir), "notes": args.notes}
+    backend = args.backend or config.get("compute_target", {}).get("backend", "local")
+    runner = get_runner(backend)
+    run_spec = {
+        "run_id": run_id,
+        "local_output_dir": str(run_dir),
+        "notes": args.notes,
+        "backend": backend,
+        "compute_target": config.get("compute_target", {}),
+    }
     job_id = runner.submit(run_spec)
     wait_result = runner.wait(job_id)
     if wait_result.get("status") != "completed":
