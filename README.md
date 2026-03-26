@@ -42,7 +42,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 python scripts/validate_config.py experiments/configs/example_baseline.yaml
-python src/launch_run.py --config experiments/configs/example_baseline.yaml --backend modal --notes "modal smoke"
+python scripts/validate_config.py experiments/configs/example_synthetic_phone_demo.yaml
+python src/launch_run.py --config experiments/configs/example_synthetic_phone_demo.yaml --backend modal --notes "synthetic phone demo"
 ```
 
 After a run, open:
@@ -61,7 +62,7 @@ That is expected for this repo: the workflow name is **`run-experiment`**, and G
 4. Select **run-experiment** (not `ci` or `publish-pages`).
 5. Tap **Run workflow**.
 6. Set at least:
-   - `config_path` (for example `experiments/configs/example_baseline.yaml`)
+   - `config_path` (for example `experiments/configs/example_synthetic_phone_demo.yaml`)
    - `backend` (`modal`, `local`, or `gcp`)
 7. Tap the green **Run workflow** confirm button.
 8. Open the new run entry to monitor status and download artifacts.
@@ -91,6 +92,19 @@ If **run-experiment** is missing entirely, confirm the branch selector is set to
      - `REPORT_SITE_BASE_URL` (optional)
 4. In **Settings → Pages**, set source to **GitHub Actions**.
 
+
+
+### Automatic Pages publishing after each experiment run
+
+`publish-pages` now auto-runs after every successful `run-experiment` workflow completion (in addition to manual/push triggers).
+
+- It downloads the triggering run's `run-full` artifact.
+- It rebuilds the mobile-friendly Pages dashboard index.
+- It republishes `site/` so iPhone users can open reports without downloading artifacts.
+
+If you want a quick demo run that produces visibly different synthetic metrics/artifacts, use:
+
+- `experiments/configs/example_synthetic_phone_demo.yaml`
 
 ### Troubleshooting GitHub Pages 404 in CI
 

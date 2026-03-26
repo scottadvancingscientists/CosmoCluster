@@ -1,0 +1,28 @@
+experiment_name: synthetic_phone_demo
+run_group: phase3_demo
+model_name: dummy-model-wide
+dataset_name: synthetic-moons
+dataset_version: v0.2
+task_type: dummy
+train_entrypoint: src/train.py
+eval_entrypoint: src/evaluate.py
+hyperparameters:
+  epochs: 36
+  learning_rate: 0.0007
+  batch_size: 32
+seed: 7
+tags:
+  - synthetic
+  - phone-first
+  - demo
+artifact_policy:
+  save_checkpoints: true
+  save_plotly: true
+  save_figures: true
+compute_target:
+  backend: modal
+  instance_type: cpu-small
+report_options:
+  include_plotly: true
+  include_failure_section: true
+  mobile_emphasis: true

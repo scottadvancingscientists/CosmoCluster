@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import time
 import subprocess
 import sys
@@ -57,6 +58,30 @@ def get_runner(name: str):
     raise ValueError(f"Unsupported backend: {name}")
 
 
+
+
+def synthesize_metrics(config: dict) -> dict[str, float]:
+    seed = int(config.get("seed", 0))
+    hp = config.get("hyperparameters", {})
+    epochs = int(hp.get("epochs", 20))
+    learning_rate = float(hp.get("learning_rate", 1e-3))
+    batch_size = int(hp.get("batch_size", 64))
+
+    rng = random.Random(seed)
+    training_gain = min(0.08, max(0.0, epochs / 800))
+    lr_penalty = min(0.05, abs(learning_rate - 1e-3) * 30)
+    accuracy = min(0.98, max(0.55, 0.80 + training_gain - lr_penalty + rng.uniform(-0.03, 0.03)))
+    f1 = min(0.97, max(0.50, accuracy - 0.012 + rng.uniform(-0.015, 0.015)))
+    loss = min(0.90, max(0.05, 1.05 - accuracy + rng.uniform(-0.03, 0.03)))
+    latency_ms = max(4.0, (220.0 / max(1, batch_size)) + rng.uniform(2.0, 6.0))
+
+    return {
+        "accuracy": round(accuracy, 4),
+        "f1": round(f1, 4),
+        "loss": round(loss, 4),
+        "latency_ms": round(latency_ms, 4),
+    }
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -87,14 +112,29 @@ def main() -> None:
     errors = []
 
     try:
-        run_dummy_train(run_dir / "logs/train.log")
-        run_dummy_eval(run_dir / "logs/eval.log")
-        metrics = {"accuracy": 0.912, "f1": 0.901, "loss": 0.221, "latency_ms": 12.4}
+        metrics = synthesize_metrics(config)
+        epochs = int(config.get("hyperparameters", {}).get("epochs", 20))
+        run_dummy_train(run_dir / "logs/train.log", epochs=epochs, final_loss=metrics["loss"])
+        run_dummy_eval(run_dir / "logs/eval.log", accuracy=metrics["accuracy"], f1=metrics["f1"])
         write_metrics(run_dir, metrics)
         make_dummy_plots(run_dir / "figures", run_dir / "plotly")
         (run_dir / "checkpoints/best.ckpt").write_text("dummy-checkpoint", encoding="utf-8")
         (run_dir / "run_summary.md").write_text(
-            "# Run Summary\n\nDummy end-to-end run completed successfully.\n", encoding="utf-8"
+            "\n".join(
+                [
+                    "# Run Summary",
+                    "",
+                    "Synthetic end-to-end run completed successfully.",
+                    "",
+                    f"- accuracy: {metrics['accuracy']}",
+                    f"- f1: {metrics['f1']}",
+                    f"- loss: {metrics['loss']}",
+                    f"- latency_ms: {metrics['latency_ms']}",
+                    f"- backend: {config.get('compute_target', {}).get('backend', 'unknown')}",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
         )
     except Exception as exc:
         status = "failed"
