@@ -158,8 +158,7 @@ def pulsed_candidates(seed: int) -> list[Candidate]:
         Candidate(
             "pulse_bridge_protect",
             HybridParams(
-                **base,
-                k=14,
+                **{**base, "k": 14},
                 field_pulses=(
                     FieldPulse(start=0.00, end=0.70, period=0.14, duty_cycle=0.30, repulsion_gain=0.80),
                     FieldPulse(start=0.30, end=0.85, period=0.20, duty_cycle=0.55, cohesion_gain=0.35),
