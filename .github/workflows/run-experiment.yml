@@ -40,6 +40,9 @@ jobs:
         run: python scripts/validate_config.py "${{ github.event.inputs.config_path }}"
       - name: Launch run
         id: launch
+        env:
+          MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+          MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
         run: |
           python src/launch_run.py \
             --config "${{ github.event.inputs.config_path }}" \
@@ -64,7 +67,20 @@ jobs:
           path: ${{ steps.launch.outputs.run_dir }}/report
       - name: Job summary
         run: |
+          MODAL_MODE="n/a"
+          if [ -f "${{ steps.launch.outputs.run_dir }}/collect_metadata.json" ]; then
+            MODAL_MODE=$(python - <<'PY'
+import json
+from pathlib import Path
+
+path = Path("${{ steps.launch.outputs.run_dir }}/collect_metadata.json")
+data = json.loads(path.read_text(encoding="utf-8"))
+print(data.get("mode", "unknown"))
+PY
+)
+          fi
           echo "## Experiment run" >> $GITHUB_STEP_SUMMARY
           echo "- Run dir: ${{ steps.launch.outputs.run_dir }}" >> $GITHUB_STEP_SUMMARY
           echo "- Backend: ${{ github.event.inputs.backend }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Modal mode: ${MODAL_MODE}" >> $GITHUB_STEP_SUMMARY
           echo "- Artifacts: run-full, run-logs, run-report-only" >> $GITHUB_STEP_SUMMARY
