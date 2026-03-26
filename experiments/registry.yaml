@@ -1,4 +1,4 @@
 experiments:
-  - name: baseline_dummy
+  - name: baseline_real
     config_path: experiments/configs/example_baseline.yaml
-    description: Phase 1 dummy end-to-end baseline for phone-first workflow.
+    description: Real synthetic clustering baseline for phone-first workflow.

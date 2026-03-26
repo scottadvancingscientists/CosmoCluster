@@ -1,9 +1,9 @@
-experiment_name: baseline_dummy
+experiment_name: baseline_real
 run_group: phase1
-model_name: dummy-model
+model_name: cosmocluster-minimal
 dataset_name: synthetic-suite
 dataset_version: v0.1
-task_type: dummy
+task_type: clustering
 train_entrypoint: src/train.py
 eval_entrypoint: src/evaluate.py
 hyperparameters:
@@ -14,7 +14,7 @@ seed: 42
 tags:
   - baseline
   - phone-first
-  - dummy
+  - real
 artifact_policy:
   save_checkpoints: true
   save_plotly: true
