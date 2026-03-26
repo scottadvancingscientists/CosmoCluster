@@ -98,12 +98,18 @@ jobs:
           archive_url = match["archive_download_url"]
 
           def download_archive(url: str, destination: pathlib.Path) -> None:
-              # The artifact endpoint returns a redirect to a signed blob URL.
-              # If Authorization is forwarded to the redirected host, some
-              # environments return 401. Follow redirects manually and only send
+              # The artifact endpoint returns an HTTP redirect to a signed blob URL.
+              # urllib's default redirect behavior can forward Authorization in ways
+              # that produce 401 responses on the redirected host. To prevent this,
+              # we disable auto-redirect and follow Location manually, only sending
               # the token to api.github.com.
+              class NoRedirect(urllib.request.HTTPRedirectHandler):
+                  def redirect_request(self, req, fp, code, msg, headers, newurl):
+                      return None
+
+              opener = urllib.request.build_opener(NoRedirect)
               current_url = url
-              for _ in range(5):
+              for _ in range(6):
                   parsed = urllib.parse.urlparse(current_url)
                   headers = {"Accept": "application/vnd.github+json"}
                   if parsed.netloc == "api.github.com":
@@ -112,9 +118,15 @@ jobs:
 
                   req = urllib.request.Request(current_url, headers=headers)
                   try:
-                      with urllib.request.urlopen(req) as resp:
+                      with opener.open(req) as resp:
+                          if 300 <= resp.status < 400:
+                              location = resp.headers.get("Location")
+                              if not location:
+                                  raise SystemExit("Artifact redirect missing Location header.")
+                              current_url = urllib.parse.urljoin(current_url, location)
+                              continue
                           destination.write_bytes(resp.read())
-                      return
+                          return
                   except urllib.error.HTTPError as err:
                       if err.code in {301, 302, 303, 307, 308}:
                           location = err.headers.get("Location")
@@ -123,7 +135,7 @@ jobs:
                           current_url = urllib.parse.urljoin(current_url, location)
                           continue
                       raise
-              raise SystemExit("Failed to download artifact archive after multiple redirects.")
+              raise SystemExit("Failed to download artifact archive after multiple redirect hops.")
 
           with tempfile.TemporaryDirectory() as tmp:
               zip_path = pathlib.Path(tmp) / "run-full.zip"
