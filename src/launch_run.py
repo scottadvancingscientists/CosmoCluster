@@ -17,6 +17,7 @@ from runners.local_runner import LocalRunner
 from runners.modal_runner import ModalRunner
 from src.make_report import generate_run_report
 from src.real_experiment import run_real_experiment
+from src.utils.artifacts_index import write_artifacts_index
 from src.utils.config import load_and_validate_config
 from src.utils.io import ensure_dir, write_yaml
 from src.utils.manifest import utc_now_iso, write_manifest
@@ -206,12 +207,14 @@ def main() -> None:
     }
     write_manifest(run_dir / "manifest.json", manifest)
     report_path = generate_run_report(run_dir)
+    artifacts_index_path = write_artifacts_index(run_dir)
     archive_path = shutil.make_archive(str(run_dir / "artifacts"), "zip", root_dir=run_dir)
     if archive_path:
         print(f"ARCHIVE={archive_path}")
     print(f"RUN_ID={run_id}")
     print(f"RUN_DIR={run_dir}")
     print(f"REPORT={report_path}")
+    print(f"ARTIFACTS_INDEX={artifacts_index_path}")
 
 
 if __name__ == "__main__":

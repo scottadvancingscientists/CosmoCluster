@@ -7,6 +7,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from src.utils.artifacts_index import write_artifacts_index
+
 
 def _load_metrics(run_dir: Path) -> dict[str, str]:
     metrics_path = run_dir / "metrics.json"
@@ -46,6 +48,8 @@ def main() -> None:
         m = run_dir / "manifest.json"
         if not m.exists():
             continue
+        if not (run_dir / "artifacts/index.html").exists():
+            write_artifacts_index(run_dir)
         manifest = json.loads(m.read_text(encoding="utf-8"))
         rows.append(
             {
@@ -98,6 +102,7 @@ def main() -> None:
                     (
                         "<p style='margin:.75rem 0 0 0;display:flex;gap:8px;flex-wrap:wrap'>"
                         f"<a class='button-link' href='runs/{r['run_id']}/report/index.html'>Open report</a>"
+                        f"<a class='button-link secondary' href='runs/{r['run_id']}/artifacts/index.html'>Browse artifacts</a>"
                         f"<a class='button-link secondary' href='runs/{r['run_id']}/artifacts.zip'>Download .zip</a>"
                         "</p>"
                     ),
