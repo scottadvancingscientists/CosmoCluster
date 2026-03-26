@@ -208,3 +208,7 @@ __marimo__/
 
 # Generated benchmark artifacts (plots, html, csv/json reports)
 artifacts/performance/
+
+# Phone-first experiment outputs
+outputs/*
+!outputs/.gitkeep

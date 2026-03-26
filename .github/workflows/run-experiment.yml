@@ -1,0 +1,70 @@
+name: run-experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      config_path:
+        description: Experiment config path
+        required: true
+        default: experiments/configs/example_baseline.yaml
+      backend:
+        description: Backend to use (local/modal/gcp)
+        required: true
+        default: local
+      run_mode:
+        description: Run mode label
+        required: false
+        default: manual
+      notes:
+        description: Notes for this run
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ vars.PYTHON_VERSION || '3.11' }}
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Validate config
+        run: python scripts/validate_config.py "${{ github.event.inputs.config_path }}"
+      - name: Launch run
+        id: launch
+        run: |
+          python src/launch_run.py \
+            --config "${{ github.event.inputs.config_path }}" \
+            --backend "${{ github.event.inputs.backend }}" \
+            --notes "${{ github.event.inputs.notes }}"
+          RUN_DIR=$(ls -td outputs/runs/* | head -n1)
+          echo "run_dir=$RUN_DIR" >> "$GITHUB_OUTPUT"
+      - name: Upload full run artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-full
+          path: ${{ steps.launch.outputs.run_dir }}
+      - name: Upload logs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-logs
+          path: ${{ steps.launch.outputs.run_dir }}/logs
+      - name: Upload report-only artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-report-only
+          path: ${{ steps.launch.outputs.run_dir }}/report
+      - name: Job summary
+        run: |
+          echo "## Experiment run" >> $GITHUB_STEP_SUMMARY
+          echo "- Run dir: ${{ steps.launch.outputs.run_dir }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: ${{ github.event.inputs.backend }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifacts: run-full, run-logs, run-report-only" >> $GITHUB_STEP_SUMMARY

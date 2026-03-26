@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ vars.PYTHON_VERSION || '3.11' }}
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Config validation smoke test
+        run: python scripts/validate_config.py experiments/configs/example_baseline.yaml
+      - name: Dummy run smoke test
+        run: python src/launch_run.py --config experiments/configs/example_baseline.yaml --backend local --notes "ci smoke"
+      - name: Build comparison smoke test
+        run: |
+          RUN_DIR=$(ls -td outputs/runs/* | head -n1)
+          python src/compare_runs.py --run-dirs "$RUN_DIR" "$RUN_DIR"
