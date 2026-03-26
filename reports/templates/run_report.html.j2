@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ manifest.run_id }}</title>
+  <link rel="stylesheet" href="../../../reports/static/styles.css" />
+</head>
+<body>
+  <main>
+    <section class="card">
+      <h1 style="margin:0 0 6px 0; font-size:1.2rem;">Run report</h1>
+      <div><strong>{{ manifest.run_id }}</strong></div>
+      <div class="badge {{ 'ok' if manifest.status == 'completed' else 'bad' }}">{{ manifest.status }}</div>
+      <p style="margin:.5rem 0 0 0; color:var(--muted);">SHA {{ manifest.git_sha }} · Branch {{ manifest.branch }}</p>
+    </section>
+
+    <section class="card">
+      <h2 style="margin-top:0">Top metrics</h2>
+      <div class="grid">
+        {% for k, v in metrics.items() %}
+          <div>
+            <div style="color:var(--muted)">{{ k }}</div>
+            <div class="metric">{{ v }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 style="margin-top:0">Summary</h2>
+      <pre>{{ summary_md }}</pre>
+    </section>
+
+    <section class="card">
+      <h2 style="margin-top:0">Artifacts</h2>
+      <ul>
+        <li><a href="../metrics.csv">metrics.csv</a></li>
+        <li><a href="../metrics.json">metrics.json</a></li>
+        <li><a href="../config_frozen.yaml">config_frozen.yaml</a></li>
+        <li><a href="../logs/train.log">train.log</a></li>
+        <li><a href="../logs/eval.log">eval.log</a></li>
+        <li><a href="../plotly/training_curves.html">training_curves.html</a></li>
+        <li><a href="../plotly/embedding_projection.html">embedding_projection.html</a></li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2 style="margin-top:0">Figures</h2>
+      <img src="../figures/loss_curve.png" alt="loss curve" />
+      <img src="../figures/confusion_matrix.png" alt="confusion matrix" />
+    </section>
+
+    <section class="card">
+      <h2 style="margin-top:0">Next experiments</h2>
+      <ul>
+        <li>Run seed sweep: 13, 21, 89.</li>
+        <li>Test higher learning rate: 0.003.</li>
+        <li>Compare local backend output with future Modal backend.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

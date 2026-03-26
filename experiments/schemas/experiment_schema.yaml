@@ -1,0 +1,69 @@
+type: object
+additionalProperties: true
+required:
+  - experiment_name
+  - run_group
+  - model_name
+  - dataset_name
+  - dataset_version
+  - task_type
+  - hyperparameters
+  - seed
+  - tags
+  - artifact_policy
+  - compute_target
+  - report_options
+properties:
+  experiment_name:
+    type: string
+    minLength: 1
+  run_group:
+    type: string
+    minLength: 1
+  model_name:
+    type: string
+    minLength: 1
+  dataset_name:
+    type: string
+    minLength: 1
+  dataset_version:
+    type: string
+    minLength: 1
+  task_type:
+    type: string
+    enum: [classification, regression, clustering, ranking, generation, dummy]
+  train_command:
+    type: string
+  train_entrypoint:
+    type: string
+  eval_command:
+    type: string
+  eval_entrypoint:
+    type: string
+  hyperparameters:
+    type: object
+  seed:
+    type: integer
+  tags:
+    type: array
+    items:
+      type: string
+  artifact_policy:
+    type: object
+    additionalProperties: true
+  compute_target:
+    type: object
+    required: [backend]
+    properties:
+      backend:
+        type: string
+      instance_type:
+        type: string
+      accelerator:
+        type: string
+  report_options:
+    type: object
+    additionalProperties: true
+anyOf:
+  - required: [train_command]
+  - required: [train_entrypoint]
