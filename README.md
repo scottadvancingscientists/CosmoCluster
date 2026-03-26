@@ -420,3 +420,29 @@ print(np.unique(labels).size, "clusters")
 
 This is intentionally simple and CPU-friendly so we can iterate quickly on
 force laws, schedules, diagnostics, and extraction strategies.
+
+
+## Quick Synthetic Parameter Experiment (Cosmology vs Pulsed vs Legacy)
+
+Use `synthetic_experiment.py` to run a **small, fast experiment** that:
+
+1. searches a compact candidate set for `field_mode="cosmology"`
+2. searches a compact candidate set for `field_mode="pulsed"`
+3. compares the best of both against legacy baselines (`hdbscan` when installed, `kmeans`, `dbscan`, `agglomerative`)
+
+Example:
+
+```bash
+python synthetic_experiment.py --n-samples 1200 --noise 0.03 --max-cases 6 --outdir artifacts/small_experiment
+```
+
+Key outputs:
+
+- `search_cosmology.csv`
+- `search_pulsed.csv`
+- `comparison.csv`
+- `comparison_summary.csv`
+- `recommended_params.json`
+- `REPORT.md`
+
+This gives a practical starting point for “reasonable” cosmological and pulsed field parameters before running the full benchmark suite.
