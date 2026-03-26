@@ -4,9 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-  workflow_run:
-    workflows: [run-experiment]
-    types: [completed]
 
 permissions:
   actions: read
@@ -20,9 +17,6 @@ concurrency:
 
 jobs:
   build:
-    if: |
-      github.event_name != 'workflow_run' ||
-      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -54,127 +48,6 @@ jobs:
               }
               throw error;
             }
-      - name: Download run-full artifact from run-experiment
-        if: github.event_name == 'workflow_run'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          OWNER: ${{ github.repository_owner }}
-          REPO: ${{ github.event.repository.name }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
-        run: |
-          set -euo pipefail
-          mkdir -p outputs/runs
-          python - <<'PY'
-          import json
-          import os
-          import pathlib
-          import tempfile
-          import urllib.error
-          import urllib.request
-          import urllib.parse
-          import zipfile
-
-          owner = os.environ["OWNER"]
-          repo = os.environ["REPO"]
-          run_id = os.environ["RUN_ID"]
-          token = os.environ["GITHUB_TOKEN"]
-
-          req = urllib.request.Request(
-              f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/artifacts",
-              headers={
-                  "Accept": "application/vnd.github+json",
-                  "Authorization": f"Bearer {token}",
-                  "X-GitHub-Api-Version": "2022-11-28",
-              },
-          )
-          with urllib.request.urlopen(req) as resp:
-              payload = json.loads(resp.read().decode("utf-8"))
-
-          artifacts = payload.get("artifacts", [])
-          match = next((a for a in artifacts if a.get("name") == "run-full" and not a.get("expired")), None)
-          if not match:
-              raise SystemExit("No non-expired run-full artifact found on triggering workflow run.")
-
-          archive_url = match["archive_download_url"]
-
-          def download_archive(url: str, destination: pathlib.Path) -> None:
-              # The artifact endpoint returns an HTTP redirect to a signed blob URL.
-              # urllib's default redirect behavior can forward Authorization in ways
-              # that produce 401 responses on the redirected host. To prevent this,
-              # we disable auto-redirect and follow Location manually, only sending
-              # the token to api.github.com.
-              class NoRedirect(urllib.request.HTTPRedirectHandler):
-                  def redirect_request(self, req, fp, code, msg, headers, newurl):
-                      return None
-
-              opener = urllib.request.build_opener(NoRedirect)
-              current_url = url
-              for _ in range(6):
-                  parsed = urllib.parse.urlparse(current_url)
-                  headers = {"Accept": "application/vnd.github+json"}
-                  if parsed.netloc == "api.github.com":
-                      headers["Authorization"] = f"Bearer {token}"
-                      headers["X-GitHub-Api-Version"] = "2022-11-28"
-
-                  req = urllib.request.Request(current_url, headers=headers)
-                  try:
-                      with opener.open(req) as resp:
-                          if 300 <= resp.status < 400:
-                              location = resp.headers.get("Location")
-                              if not location:
-                                  raise SystemExit("Artifact redirect missing Location header.")
-                              current_url = urllib.parse.urljoin(current_url, location)
-                              continue
-                          destination.write_bytes(resp.read())
-                          return
-                  except urllib.error.HTTPError as err:
-                      if err.code in {301, 302, 303, 307, 308}:
-                          location = err.headers.get("Location")
-                          if not location:
-                              raise
-                          current_url = urllib.parse.urljoin(current_url, location)
-                          continue
-                      raise
-              raise SystemExit("Failed to download artifact archive after multiple redirect hops.")
-
-          with tempfile.TemporaryDirectory() as tmp:
-              zip_path = pathlib.Path(tmp) / "run-full.zip"
-              download_archive(archive_url, zip_path)
-
-              extract_dir = pathlib.Path(tmp) / "extract"
-              extract_dir.mkdir(parents=True, exist_ok=True)
-              with zipfile.ZipFile(zip_path) as zf:
-                  zf.extractall(extract_dir)
-
-              manifest_candidates = list(extract_dir.rglob("manifest.json"))
-              if not manifest_candidates:
-                  raise SystemExit("Artifact did not contain manifest.json; cannot place run into outputs/runs.")
-
-              run_root = manifest_candidates[0].parent
-              manifest = json.loads((run_root / "manifest.json").read_text(encoding="utf-8"))
-              run_id_from_manifest = manifest.get("run_id") or run_root.name
-
-              destination = pathlib.Path("outputs/runs") / run_id_from_manifest
-              if destination.exists():
-                  for p in sorted(destination.rglob("*"), reverse=True):
-                      if p.is_file() or p.is_symlink():
-                          p.unlink()
-                      elif p.is_dir():
-                          p.rmdir()
-                  destination.rmdir()
-              destination.mkdir(parents=True, exist_ok=True)
-
-              for src in run_root.rglob("*"):
-                  rel = src.relative_to(run_root)
-                  dst = destination / rel
-                  if src.is_dir():
-                      dst.mkdir(parents=True, exist_ok=True)
-                  else:
-                      dst.parent.mkdir(parents=True, exist_ok=True)
-                      dst.write_bytes(src.read_bytes())
-
-              print(f"Downloaded run-full artifact into {destination}")
-          PY
       - name: Build index
         run: |
           python scripts/build_pages_index.py

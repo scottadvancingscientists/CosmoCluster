@@ -97,11 +97,11 @@ If **run-experiment** is missing entirely, confirm the branch selector is set to
 
 ### Automatic Pages publishing after each experiment run
 
-`publish-pages` now auto-runs after every successful `run-experiment` workflow completion (in addition to manual/push triggers).
+`run-experiment` now publishes GitHub Pages automatically after each successful run.
 
-- It downloads the triggering run's `run-full` artifact.
-- It rebuilds the mobile-friendly Pages dashboard index.
-- It republishes `site/` so iPhone users can open reports without downloading artifacts.
+- The same workflow that launches the experiment now rebuilds and deploys `site/` immediately.
+- This removes the need to run a separate publish workflow after a run.
+- `publish-pages` remains available for manual/backfill rebuilds and `main` push-based refreshes.
 
 If you want a quick demo run that produces visibly different synthetic metrics/artifacts, use:
 
