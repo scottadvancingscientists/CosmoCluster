@@ -41,8 +41,10 @@ on:
         default: "true"
 
 permissions:
-  contents: read
   actions: read
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   run:
@@ -167,3 +169,57 @@ jobs:
           echo "- Queue timeout: ${{ github.event.inputs.queue_timeout_seconds }}s" >> $GITHUB_STEP_SUMMARY
           echo "- Modal mode: ${MODAL_MODE}" >> $GITHUB_STEP_SUMMARY
           echo "- Artifacts: run-full, run-logs, run-report-only" >> $GITHUB_STEP_SUMMARY
+
+
+  publish-pages:
+    name: publish-pages
+    needs: run
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ vars.PYTHON_VERSION || '3.11' }}
+      - name: Download run-full artifact from current run
+        uses: actions/download-artifact@v6
+        with:
+          name: run-full
+          path: outputs/_artifact_run_full
+      - name: Normalize downloaded run artifact
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import shutil
+
+          artifact_root = Path("outputs/_artifact_run_full")
+          manifests = list(artifact_root.rglob("manifest.json"))
+          if not manifests:
+              raise SystemExit("run-full artifact missing manifest.json; cannot publish Pages index.")
+
+          run_root = manifests[0].parent
+          manifest = json.loads((run_root / "manifest.json").read_text(encoding="utf-8"))
+          run_id = manifest.get("run_id") or run_root.name
+
+          destination = Path("outputs/runs") / run_id
+          if destination.exists():
+              shutil.rmtree(destination)
+          destination.parent.mkdir(parents=True, exist_ok=True)
+          shutil.copytree(run_root, destination)
+          print(f"Prepared run artifact at {destination}")
+          PY
+      - name: Build index
+        run: |
+          python scripts/build_pages_index.py
+          mkdir -p site/runs
+          cp -R outputs/runs/* site/runs/ 2>/dev/null || true
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v5
