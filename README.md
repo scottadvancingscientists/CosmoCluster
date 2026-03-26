@@ -64,6 +64,7 @@ That is expected for this repo: the workflow name is **`run-experiment`**, and G
 6. Set at least:
    - `config_path` (for example `experiments/configs/example_synthetic_phone_demo.yaml`)
    - `backend` (`modal`, `local`, or `gcp`)
+   - `allow_demo_config` (defaults to `true` for the included demo configs; set to `false` when using production configs)
 7. Tap the green **Run workflow** confirm button.
 8. Open the new run entry to monitor status and download artifacts.
 

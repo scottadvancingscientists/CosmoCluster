@@ -38,7 +38,7 @@ on:
       allow_demo_config:
         description: Allow demo/dummy/synthetic config (not recommended)
         required: false
-        default: "false"
+        default: "true"
 
 permissions:
   contents: read
