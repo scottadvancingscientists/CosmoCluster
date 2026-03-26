@@ -90,6 +90,52 @@ The framework should support plug-and-play choices for:
 - **Dynamics**: continuous updates vs graph-flow updates
 - **Cluster Extraction**: basin endpoints, connected components, persistence/stability
 - **Hierarchy**: coarse-to-fine merging with stability metrics
+- **Field Scheduling**: default cosmology transition, pulsed schedules, or fully custom per-step weighting callbacks
+
+### Dynamic Field Scheduling (New)
+
+`HybridParams` now supports dynamic field control:
+
+- `field_mode="cosmology"` (default): the original smooth expansion→gravity transition.
+- `field_mode="pulsed"`: applies one or more square-wave pulses (`FieldPulse`) over normalized phase progress.
+- `field_schedule=...`: a custom callable for full per-step control.
+
+This makes it possible to emulate **pulsed field gel electrophoresis–style forcing** where attractive and repulsive components are periodically emphasized to encourage band/cluster focusing.
+
+Example pulsed setup:
+
+```python
+from cosmocluster import CosmoClusterMinimal, FieldPulse, HybridParams
+
+params = HybridParams(
+    field_mode="pulsed",
+    field_pulses=(
+        # burst repulsion in early expansion windows
+        FieldPulse(start=0.00, end=0.55, period=0.12, duty_cycle=0.35, repulsion_gain=0.75),
+        # burst gravity in late settling windows
+        FieldPulse(start=0.45, end=1.00, period=0.15, duty_cycle=0.50, gravity_gain=0.90),
+    ),
+)
+
+model = CosmoClusterMinimal(params).fit(X)
+```
+
+Custom schedule example:
+
+```python
+from cosmocluster import CosmoClusterMinimal, FieldWeights, HybridParams
+
+def schedule(phase: str, step: int, total_steps: int) -> FieldWeights:
+    p = step / max(1, total_steps - 1)
+    if phase == "expansion":
+        # alternate between unfold and tighten
+        on = int(p * 10) % 2 == 0
+        return FieldWeights(repulsion=1.2 if on else 0.4, cohesion=0.3 if on else 1.0, gravity=0.0)
+    return FieldWeights(repulsion=0.0, cohesion=0.0, gravity=0.4 + 1.1 * p)
+
+params = HybridParams(field_schedule=schedule)
+model = CosmoClusterMinimal(params).fit(X)
+```
 
 ### Mechanistic Explainability First (Physics-Inspired)
 
