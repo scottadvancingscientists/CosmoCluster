@@ -24,15 +24,12 @@ permissions:
   contents: read
   actions: read
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ vars.PYTHON_VERSION || '3.11' }}
       - name: Install deps
@@ -51,17 +48,17 @@ jobs:
           RUN_DIR=$(ls -td outputs/runs/* | head -n1)
           echo "run_dir=$RUN_DIR" >> "$GITHUB_OUTPUT"
       - name: Upload full run artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: run-full
           path: ${{ steps.launch.outputs.run_dir }}
       - name: Upload logs artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: run-logs
           path: ${{ steps.launch.outputs.run_dir }}/logs
       - name: Upload report-only artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: run-report-only
           path: ${{ steps.launch.outputs.run_dir }}/report
