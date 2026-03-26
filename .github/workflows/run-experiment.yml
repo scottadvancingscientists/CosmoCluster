@@ -11,6 +11,22 @@ on:
         description: Backend to use (local/modal/gcp)
         required: true
         default: modal
+      seed_override:
+        description: Optional seed override (integer)
+        required: false
+        default: ""
+      max_retries:
+        description: Backend retry attempts after first failure
+        required: false
+        default: "2"
+      retry_delay_seconds:
+        description: Delay between backend retries (seconds)
+        required: false
+        default: "10"
+      queue_timeout_seconds:
+        description: Queue wait timeout before failing (seconds)
+        required: false
+        default: "900"
       run_mode:
         description: Run mode label
         required: false
@@ -27,6 +43,8 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -43,13 +61,27 @@ jobs:
         env:
           MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
           MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+          DEFAULT_BACKEND: ${{ vars.DEFAULT_BACKEND }}
         run: |
+          BACKEND_INPUT="${{ github.event.inputs.backend }}"
+          if [ -z "$BACKEND_INPUT" ]; then
+            BACKEND_INPUT="${DEFAULT_BACKEND:-modal}"
+          fi
+          SEED_OVERRIDE_ARG=""
+          if [ -n "${{ github.event.inputs.seed_override }}" ]; then
+            SEED_OVERRIDE_ARG="--seed-override ${{ github.event.inputs.seed_override }}"
+          fi
           python src/launch_run.py \
             --config "${{ github.event.inputs.config_path }}" \
-            --backend "${{ github.event.inputs.backend }}" \
+            --backend "$BACKEND_INPUT" \
+            --max-retries "${{ github.event.inputs.max_retries }}" \
+            --retry-delay-seconds "${{ github.event.inputs.retry_delay_seconds }}" \
+            --queue-timeout-seconds "${{ github.event.inputs.queue_timeout_seconds }}" \
+            $SEED_OVERRIDE_ARG \
             --notes "${{ github.event.inputs.notes }}"
           RUN_DIR=$(ls -td outputs/runs/* | head -n1)
           echo "run_dir=$RUN_DIR" >> "$GITHUB_OUTPUT"
+          echo "backend_used=$BACKEND_INPUT" >> "$GITHUB_OUTPUT"
       - name: Upload full run artifact
         uses: actions/upload-artifact@v6
         with:
@@ -81,6 +113,9 @@ PY
           fi
           echo "## Experiment run" >> $GITHUB_STEP_SUMMARY
           echo "- Run dir: ${{ steps.launch.outputs.run_dir }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Backend: ${{ github.event.inputs.backend }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: ${{ steps.launch.outputs.backend_used }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Seed override: ${{ github.event.inputs.seed_override || 'none' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Retries: ${{ github.event.inputs.max_retries }} (delay ${{ github.event.inputs.retry_delay_seconds }}s)" >> $GITHUB_STEP_SUMMARY
+          echo "- Queue timeout: ${{ github.event.inputs.queue_timeout_seconds }}s" >> $GITHUB_STEP_SUMMARY
           echo "- Modal mode: ${MODAL_MODE}" >> $GITHUB_STEP_SUMMARY
           echo "- Artifacts: run-full, run-logs, run-report-only" >> $GITHUB_STEP_SUMMARY

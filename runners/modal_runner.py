@@ -30,9 +30,13 @@ class ModalRunner(Runner):
     def wait(self, job_id: str) -> Dict[str, Any]:
         job = self._jobs[job_id]
         src_dir = Path(job["run_spec"]["local_output_dir"]).resolve()
+        queue_timeout_seconds = int(job["run_spec"].get("queue_timeout_seconds", 900))
         if not src_dir.exists():
             job["status"] = "failed"
             return {"status": "failed", "error": f"missing local output dir: {src_dir}"}
+        if queue_timeout_seconds <= 0:
+            job["status"] = "failed"
+            return {"status": "failed", "error": "queue timeout reached before run start"}
 
         # Phase-3 starter behavior:
         # We preserve the run artifact contract now and capture Modal metadata.
@@ -50,6 +54,8 @@ class ModalRunner(Runner):
             "collected": True,
             "mode": "credentialed" if job["has_modal_credentials"] else "simulated",
             "notes": job["run_spec"].get("notes", ""),
+            "attempt": int(job["run_spec"].get("attempt", 1)),
+            "queue_timeout_seconds": int(job["run_spec"].get("queue_timeout_seconds", 900)),
         }
         (output_dir / "collect_metadata.json").write_text(
             json.dumps(metadata, indent=2), encoding="utf-8"

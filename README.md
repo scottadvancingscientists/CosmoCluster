@@ -7,7 +7,7 @@ This repository now includes a **phone-first ML experiment loop foundation**. Ph
 
 - ✅ **Phase 1:** deterministic run contract, dummy execution pipeline, run/comparison reports, CI wiring
 - ✅ **Phase 2:** mobile-first Pages index with status badges, backend metadata, and top metrics on each run card
-- 🚧 **Phase 3 (in progress):** Modal-first backend defaults, queueing/retries, and richer experiment controls
+- ✅ **Phase 3:** Modal-first backend defaults, queueing/retries, and richer experiment controls for iPhone-triggered runs
 
 ## What this implements
 
@@ -85,7 +85,7 @@ The workflow includes a preflight check that fails early with these exact steps 
 
 ### Node 20 deprecation note (GitHub Actions)
 
-This repo now pins newer action majors that run on current GitHub-hosted runners (Node.js 24-compatible), and removes the temporary `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` override.
+This repo pins newer action majors that run on current GitHub-hosted runners (Node.js 24-compatible).
 If you still see a deprecation warning, sync your branch and confirm your workflow run is using:
 
 - `actions/checkout@v5`
@@ -93,6 +93,8 @@ If you still see a deprecation warning, sync your branch and confirm your workfl
 - `actions/github-script@v8`
 - `actions/configure-pages@v5`
 - `actions/upload-artifact@v6`
+
+GitHub's `actions/upload-pages-artifact@v4` currently pins `actions/upload-artifact@ea165f8...` internally, which can still emit Node 20 deprecation warnings even when your top-level workflow uses modern tags. This repo now sets `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` for Pages and experiment workflows so those composite internals run on Node 24.
 
 ## Modal setup (account, token, and GitHub secrets)
 
@@ -161,6 +163,11 @@ If credentials are missing, this project intentionally falls back to simulated m
   - `collect_metadata.json`
   - `logs/modal_runner.log`
 - Without credentials, the runner uses safe **simulated** mode while keeping reports/artifacts intact for iPhone triage.
+- `run-experiment` now supports iPhone-friendly control inputs for:
+  - optional `seed_override`
+  - `max_retries` + `retry_delay_seconds`
+  - `queue_timeout_seconds`
+- Backend orchestration writes attempt history to `logs/orchestration.log` and records retry metadata in `manifest.json`.
 
 ## Standard run contract
 
