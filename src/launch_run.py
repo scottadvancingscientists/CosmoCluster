@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 import subprocess
 import sys
 import traceback
@@ -61,11 +62,17 @@ def main() -> None:
     parser.add_argument("--config", required=True)
     parser.add_argument("--backend", default="")
     parser.add_argument("--notes", default="")
+    parser.add_argument("--seed-override", type=int, default=None)
+    parser.add_argument("--max-retries", type=int, default=2)
+    parser.add_argument("--retry-delay-seconds", type=int, default=10)
+    parser.add_argument("--queue-timeout-seconds", type=int, default=900)
     args = parser.parse_args()
 
     config_path = Path(args.config)
     schema_path = Path("experiments/schemas/experiment_schema.yaml")
     config = load_and_validate_config(config_path, schema_path)
+    if args.seed_override is not None:
+        config["seed"] = int(args.seed_override)
 
     run_id = build_run_id(config["experiment_name"], int(config["seed"]))
     run_dir = Path("outputs/runs") / run_id
@@ -111,13 +118,35 @@ def main() -> None:
         "notes": args.notes,
         "backend": backend,
         "compute_target": config.get("compute_target", {}),
+        "queue_timeout_seconds": max(0, int(args.queue_timeout_seconds)),
     }
-    job_id = runner.submit(run_spec)
-    wait_result = runner.wait(job_id)
+    orchestration_log_path = run_dir / "logs/orchestration.log"
+    max_retries = max(0, int(args.max_retries))
+    retry_delay_seconds = max(0, int(args.retry_delay_seconds))
+    attempt = 0
+    wait_result: dict[str, str] = {"status": "failed", "error": "runner was never invoked"}
+    job_id = ""
+
+    while attempt <= max_retries:
+        attempt += 1
+        job_id = runner.submit({**run_spec, "attempt": attempt})
+        wait_result = runner.wait(job_id)
+        attempt_status = wait_result.get("status", "unknown")
+        attempt_error = wait_result.get("error", "")
+        with orchestration_log_path.open("a", encoding="utf-8") as log_file:
+            log_file.write(
+                f"attempt={attempt} job_id={job_id} status={attempt_status} error={attempt_error}\n"
+            )
+        if attempt_status == "completed":
+            break
+        if attempt <= max_retries and retry_delay_seconds > 0:
+            time.sleep(retry_delay_seconds)
+
     if wait_result.get("status") != "completed":
         status = "failed"
         errors.append(wait_result.get("error", "runner wait failed"))
-    runner.collect(job_id, run_dir)
+    if job_id:
+        runner.collect(job_id, run_dir)
 
     end = utc_now_iso()
     start_dt = datetime.fromisoformat(start)
@@ -126,6 +155,8 @@ def main() -> None:
     manifest = {
         "run_id": run_id,
         "status": status,
+        "backend": backend,
+        "created_at": start,
         "start_time": start,
         "end_time": end,
         "duration": (end_dt - start_dt).total_seconds(),
@@ -144,6 +175,12 @@ def main() -> None:
         },
         "summary_metrics": json.loads((run_dir / "metrics.json").read_text(encoding="utf-8")),
         "report_path": "report/index.html",
+        "orchestration": {
+            "attempts": attempt,
+            "max_retries": max_retries,
+            "retry_delay_seconds": retry_delay_seconds,
+            "queue_timeout_seconds": run_spec["queue_timeout_seconds"],
+        },
         "errors": errors,
     }
     write_manifest(run_dir / "manifest.json", manifest)
