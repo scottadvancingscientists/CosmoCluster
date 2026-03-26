@@ -51,7 +51,7 @@ jobs:
           mkdir -p site/runs
           cp -R outputs/runs/* site/runs/ 2>/dev/null || true
       - name: Setup Pages
-        uses: actions/configure-pages@v6
+        uses: actions/configure-pages@v5
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:

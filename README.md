@@ -91,7 +91,7 @@ If you still see a deprecation warning, sync your branch and confirm your workfl
 - `actions/checkout@v5`
 - `actions/setup-python@v6`
 - `actions/github-script@v8`
-- `actions/configure-pages@v6`
+- `actions/configure-pages@v5`
 - `actions/upload-artifact@v6`
 
 ## Modal setup (account, token, and GitHub secrets)
@@ -105,9 +105,13 @@ If the Modal website setup path is unclear, follow this exact flow.
 
 ### 2) Create an API token in Modal
 
-1. Open **Settings** in Modal.
-2. Go to **API Tokens** (direct URL is typically `https://modal.com/settings/tokens`).
-3. Create a new token.
+If you don't see token fields in your current settings page, Modal's UI may be on a different navigation layout for your workspace/account.
+
+Use either path:
+
+1. In Modal, switch to the correct workspace first.
+2. Open the tokens page directly: `https://modal.com/settings/tokens`.
+3. If the page still doesn't show token creation, use the CLI flow below to mint/set a token.
 4. Copy both values shown by Modal:
    - **Token ID**
    - **Token Secret**
@@ -120,6 +124,10 @@ From your laptop/desktop terminal:
 
 ```bash
 pip install modal
+# Interactive flow: creates a token and writes local profile config.
+modal token new
+
+# Explicit flow if you already have values:
 modal token set --token-id <YOUR_MODAL_TOKEN_ID> --token-secret <YOUR_MODAL_TOKEN_SECRET>
 ```
 
