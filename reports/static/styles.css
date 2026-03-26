@@ -14,3 +14,6 @@ img { max-width:100%; height:auto; border-radius:8px; }
 .table-wrap { overflow-x:auto; }
 table { width:100%; border-collapse: collapse; }
 th, td { border-bottom:1px solid #273355; padding:8px; text-align:left; }
+
+.muted { color: var(--muted); }
+.metric-badge { background: rgba(147,197,253,0.2); color:#bfdbfe; }
