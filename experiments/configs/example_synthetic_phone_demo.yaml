@@ -1,9 +1,9 @@
 experiment_name: synthetic_phone_demo
 run_group: phase3_demo
-model_name: dummy-model-wide
+model_name: cosmocluster-minimal
 dataset_name: synthetic-moons
 dataset_version: v0.2
-task_type: dummy
+task_type: clustering
 train_entrypoint: src/train.py
 eval_entrypoint: src/evaluate.py
 hyperparameters:

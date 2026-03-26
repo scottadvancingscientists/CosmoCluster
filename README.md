@@ -5,7 +5,7 @@ This repository now includes a **phone-first ML experiment loop foundation**. Ph
 
 ## Roadmap status
 
-- ✅ **Phase 1:** deterministic run contract, dummy execution pipeline, run/comparison reports, CI wiring
+- ✅ **Phase 1:** deterministic run contract, real synthetic execution pipeline, run/comparison reports, CI wiring
 - ✅ **Phase 2:** mobile-first Pages index with status badges, backend metadata, and top metrics on each run card
 - ✅ **Phase 3:** Modal-first backend defaults, queueing/retries, and richer experiment controls for iPhone-triggered runs
 
@@ -14,7 +14,7 @@ This repository now includes a **phone-first ML experiment loop foundation**. Ph
 - YAML experiment config + schema validation
 - Deterministic run identity (`timestamp_sha_experiment_seed`)
 - Standardized run outputs under `outputs/runs/<RUN_ID>/`
-- Dummy run execution (no real model training yet)
+- Real synthetic clustering execution with deterministic metrics
 - Mobile-first HTML run report generation
 - Comparison report generation across runs
 - GitHub Actions workflows for CI, run execution, and Pages publishing
@@ -67,6 +67,7 @@ That is expected for this repo: the workflow name is **`run-experiment`**, and G
    - `allow_demo_config` (defaults to `true` for the included demo configs; set to `false` when using production configs)
 7. Tap the green **Run workflow** confirm button.
 8. Open the new run entry to monitor status and download artifacts.
+   - Tip: each run card now includes a one-tap `.zip` download link and the report has a large **Download all artifacts** button for iPhone Safari.
 
 ### If you only see “New workflow”
 
@@ -189,7 +190,7 @@ Then run **Actions → run-experiment** with `backend=modal`.
 - In run artifacts, inspect `logs/modal_runner.log`.
 - In the run directory, inspect `collect_metadata.json`.
 
-If credentials are missing, this project intentionally falls back to simulated mode to preserve report generation and run artifacts.
+If credentials are missing, this project intentionally falls back to simulated runner orchestration while still preserving real local experiment outputs and report artifacts.
 
 ## Modal-first usage notes (Phase 3 starter)
 
@@ -197,7 +198,7 @@ If credentials are missing, this project intentionally falls back to simulated m
 - `ModalRunner` preserves the existing run artifact contract and writes Modal metadata to:
   - `collect_metadata.json`
   - `logs/modal_runner.log`
-- Without credentials, the runner uses safe **simulated** mode while keeping reports/artifacts intact for iPhone triage.
+- Without credentials, backend queueing uses safe **simulated** mode while keeping the locally produced real metrics/reports intact for iPhone triage.
 - `run-experiment` now supports iPhone-friendly control inputs for:
   - optional `seed_override`
   - `max_retries` + `retry_delay_seconds`
