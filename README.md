@@ -50,11 +50,31 @@ After a run, open:
 
 ## Triggering from GitHub Actions (phone-friendly)
 
+If you are on iPhone Safari/GitHub Mobile, you may not see a button labeled **“New experiment.”**
+That is expected for this repo: the workflow name is **`run-experiment`**, and GitHub often shows **New workflow** first.
+
+### Quick path (mobile)
+
 1. Merge to `main`.
-2. In GitHub: **Actions → run-experiment → Run workflow**.
-3. Set `config_path` and `backend`.
-4. Monitor status from GitHub Mobile.
-5. Download artifacts from the run page and/or open Pages report.
+2. Open **Actions** tab.
+3. Tap the **All workflows** dropdown.
+4. Select **run-experiment** (not `ci` or `publish-pages`).
+5. Tap **Run workflow**.
+6. Set at least:
+   - `config_path` (for example `experiments/configs/example_baseline.yaml`)
+   - `backend` (`modal`, `local`, or `gcp`)
+7. Tap the green **Run workflow** confirm button.
+8. Open the new run entry to monitor status and download artifacts.
+
+### If you only see “New workflow”
+
+GitHub sometimes lands on the global Actions list where only a **New workflow** button is visible. Do this:
+
+1. Tap **All workflows**.
+2. Choose **run-experiment**.
+3. Scroll down to find **Run workflow**.
+
+If **run-experiment** is missing entirely, confirm the branch selector is set to `main` and that `.github/workflows/run-experiment.yml` exists in that branch.
 
 ## GitHub setup checklist
 
