@@ -43,7 +43,7 @@ pip install -r requirements.txt
 
 python scripts/validate_config.py experiments/configs/example_baseline.yaml
 python scripts/validate_config.py experiments/configs/example_synthetic_phone_demo.yaml
-python src/launch_run.py --config experiments/configs/example_synthetic_phone_demo.yaml --backend modal --notes "synthetic phone demo"
+python src/launch_run.py --config experiments/configs/example_baseline.yaml --backend local --notes "baseline real test"
 ```
 
 After a run, open:
@@ -62,9 +62,9 @@ That is expected for this repo: the workflow name is **`run-experiment`**, and G
 4. Select **run-experiment** (not `ci` or `publish-pages`).
 5. Tap **Run workflow**.
 6. Set at least:
-   - `config_path` (for example `experiments/configs/example_synthetic_phone_demo.yaml`)
+   - `config_path` (default is `experiments/configs/example_baseline.yaml`, a real clustering test config)
    - `backend` (`modal`, `local`, or `gcp`)
-   - `allow_demo_config` (defaults to `true` for the included demo configs; set to `false` when using production configs)
+   - `allow_demo_config` (`false` by default; switch to `true` only for demo/synthetic showcase configs)
 7. Tap the green **Run workflow** confirm button.
 8. Open the new run entry to monitor status and download artifacts.
    - Tip: each run card now includes **Open report**, **Browse artifacts**, and one-tap `.zip` download links for iPhone Safari.
@@ -195,7 +195,7 @@ If credentials are missing, this project intentionally falls back to simulated r
 
 ## Modal-first usage notes (Phase 3 starter)
 
-- The default example config (`experiments/configs/example_baseline.yaml`) uses `compute_target.backend: modal`.
+- The default example config (`experiments/configs/example_baseline.yaml`) is a **real clustering test** (`task_type: clustering`, `dataset_name: density_bridge`) and defaults to `compute_target.backend: local`.
 - `ModalRunner` preserves the existing run artifact contract and writes Modal metadata to:
   - `collect_metadata.json`
   - `logs/modal_runner.log`
@@ -231,6 +231,48 @@ outputs/runs/<RUN_ID>/
   checkpoints/
     best.ckpt
 ```
+
+## How to verify a run was real (not smoke/dummy)
+
+If a run "looks fake", check these artifacts in order:
+
+1. `manifest.json`
+   - `status` should be `completed`.
+   - `backend` shows the orchestration backend (`modal`, `local`, `gcp`).
+   - `orchestration.attempts` and retry settings show real submit/wait behavior.
+2. `logs/train.log`
+   - Contains real synthetic clustering details (`case`, sample count, fit seconds).
+3. `logs/eval.log`
+   - Contains computed purity/recall/F1/loss from predicted labels.
+4. `logs/orchestration.log`
+   - One line per backend attempt with `job_id`, `status`, and any error.
+5. `collect_metadata.json` (for `backend=modal`)
+   - `mode=credentialed` means Modal tokens were present.
+   - `mode=simulated` means Modal orchestration fallback was used (the clustering itself still ran locally and produced real metrics/artifacts).
+
+### Quick terminal checks
+
+```bash
+RUN_DIR=outputs/runs/<RUN_ID>
+
+cat "$RUN_DIR/manifest.json"
+cat "$RUN_DIR/logs/train.log"
+cat "$RUN_DIR/logs/eval.log"
+cat "$RUN_DIR/logs/orchestration.log"
+cat "$RUN_DIR/collect_metadata.json"   # only for modal backend
+```
+
+### One-command verifier
+
+```bash
+python scripts/verify_run.py outputs/runs/<RUN_ID>
+```
+
+### What "simulated modal mode" means in this repo
+
+- Current Phase 3 behavior preserves artifact compatibility while backend queueing can run without credentials.
+- The clustering/evaluation pipeline still executes and writes real output artifacts under the same run directory.
+- Only remote Modal execution/collection is simulated when credentials are missing.
 
 ## Compare runs
 

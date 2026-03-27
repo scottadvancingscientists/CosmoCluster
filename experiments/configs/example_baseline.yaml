@@ -1,7 +1,7 @@
 experiment_name: baseline_real
 run_group: phase1
 model_name: cosmocluster-minimal
-dataset_name: synthetic-suite
+dataset_name: density_bridge
 dataset_version: v0.1
 task_type: clustering
 train_entrypoint: src/train.py
@@ -20,7 +20,7 @@ artifact_policy:
   save_plotly: true
   save_figures: true
 compute_target:
-  backend: modal
+  backend: local
   instance_type: cpu-small
 report_options:
   include_plotly: true
