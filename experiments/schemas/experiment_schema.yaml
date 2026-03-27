@@ -64,6 +64,9 @@ properties:
   report_options:
     type: object
     additionalProperties: true
+  comparators:
+    type: object
+    additionalProperties: true
 anyOf:
   - required: [train_command]
   - required: [train_entrypoint]

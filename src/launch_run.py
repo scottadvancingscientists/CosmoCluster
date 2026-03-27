@@ -146,7 +146,7 @@ def main() -> None:
     max_retries = max(0, int(args.max_retries))
     retry_delay_seconds = max(0, int(args.retry_delay_seconds))
     attempt = 0
-    wait_result: dict[str, str] = {"status": "failed", "error": "runner was never invoked"}
+    wait_result: dict[str, object] = {"status": "failed", "error": "runner was never invoked"}
     job_id = ""
 
     while attempt <= max_retries:
@@ -155,9 +155,22 @@ def main() -> None:
         wait_result = runner.wait(job_id)
         attempt_status = wait_result.get("status", "unknown")
         attempt_error = wait_result.get("error", "")
+        modal_mode = wait_result.get("modal_mode", "")
+        modal_service_used = wait_result.get("modal_service_used", "")
+        requested_hardware = wait_result.get("requested_hardware", {})
+        runner_wait_seconds = wait_result.get("runner_wait_seconds", "")
+        missing_credentials = wait_result.get("missing_credentials", [])
         with orchestration_log_path.open("a", encoding="utf-8") as log_file:
             log_file.write(
-                f"attempt={attempt} job_id={job_id} status={attempt_status} error={attempt_error}\n"
+                (
+                    f"attempt={attempt} job_id={job_id} status={attempt_status} "
+                    f"modal_mode={modal_mode} modal_service_used={modal_service_used} "
+                    f"instance_type={requested_hardware.get('instance_type', 'unknown')} "
+                    f"accelerator={requested_hardware.get('accelerator', 'none')} "
+                    f"runner_wait_seconds={runner_wait_seconds} "
+                    f"missing_credentials={'|'.join(missing_credentials)} "
+                    f"error={attempt_error}\n"
+                )
             )
         if attempt_status == "completed":
             break
@@ -190,6 +203,9 @@ def main() -> None:
             "summary": "run_summary.md",
             "metrics_csv": "metrics.csv",
             "metrics_json": "metrics.json",
+            "case_metrics_csv": "case_metrics.csv",
+            "comparator_metrics_csv": "comparator_metrics.csv",
+            "comparator_metrics_json": "comparator_metrics.json",
             "figures": "figures",
             "plotly": "plotly",
             "logs": "logs",
@@ -202,6 +218,7 @@ def main() -> None:
             "max_retries": max_retries,
             "retry_delay_seconds": retry_delay_seconds,
             "queue_timeout_seconds": run_spec["queue_timeout_seconds"],
+            "last_wait_result": wait_result,
         },
         "errors": errors,
     }

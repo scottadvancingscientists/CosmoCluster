@@ -38,9 +38,21 @@
         <li><strong>Backend:</strong> {{ manifest.backend }}</li>
         <li><strong>Attempts:</strong> {{ manifest.orchestration.attempts }} / {{ manifest.orchestration.max_retries + 1 }} max tries</li>
         <li><strong>Queue timeout:</strong> {{ manifest.orchestration.queue_timeout_seconds }} seconds</li>
+        {% if manifest.orchestration.last_wait_result %}
+        <li><strong>Modal service used:</strong> {{ manifest.orchestration.last_wait_result.modal_service_used }}</li>
+        {% if manifest.orchestration.last_wait_result.requested_hardware %}
+        <li><strong>Requested hardware:</strong> {{ manifest.orchestration.last_wait_result.requested_hardware.instance_type }} / {{ manifest.orchestration.last_wait_result.requested_hardware.accelerator }}</li>
+        {% endif %}
+        {% if manifest.orchestration.last_wait_result.runner_wait_seconds is defined %}
+        <li><strong>Runner wait time:</strong> {{ manifest.orchestration.last_wait_result.runner_wait_seconds }} seconds</li>
+        {% endif %}
+        {% endif %}
         {% if collect_metadata %}
         <li><strong>Modal mode:</strong> {{ collect_metadata.mode }}</li>
         <li><strong>Modal job id:</strong> {{ collect_metadata.job_id }}</li>
+        {% if collect_metadata.missing_credentials %}
+        <li><strong>Missing credentials:</strong> {{ collect_metadata.missing_credentials|join(', ') }}</li>
+        {% endif %}
         {% endif %}
       </ul>
       <p class="muted">
@@ -64,6 +76,10 @@
         <li><a href="../config_frozen.yaml" download>config_frozen.yaml</a></li>
         <li><a href="../logs/train.log" download>train.log</a></li>
         <li><a href="../logs/eval.log" download>eval.log</a></li>
+        <li><a href="../logs/comparators.log" download>comparators.log</a></li>
+        <li><a href="../case_metrics.csv" download>case_metrics.csv</a></li>
+        <li><a href="../comparator_metrics.csv" download>comparator_metrics.csv</a></li>
+        <li><a href="../comparator_metrics.json" download>comparator_metrics.json</a></li>
         <li><a href="../plotly/training_curves.html">training_curves.html</a></li>
         <li><a href="../plotly/embedding_projection.html">embedding_projection.html</a></li>
       </ul>

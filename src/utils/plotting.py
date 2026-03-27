@@ -5,6 +5,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+try:
+    import plotly.graph_objects as go
+except Exception:  # pragma: no cover - optional dependency fallback.
+    go = None
+
 
 def make_run_plots(
     figures_dir: Path,
@@ -53,21 +58,66 @@ def make_run_plots(
     plt.savefig(figures_dir / "confusion_matrix.png", dpi=140)
     plt.close()
 
-    (plotly_dir / "training_curves.html").write_text(
-        (
-            "<html><body><h3>Training Curves</h3>"
-            f"<p>Case: {case_name}</p>"
-            "<p>Static PNG thumbnail is available in figures/loss_curve.png.</p>"
-            "</body></html>"
-        ),
-        encoding="utf-8",
+    if go is None:
+        (plotly_dir / "training_curves.html").write_text(
+            (
+                "<html><body><h3>Training Curves</h3>"
+                f"<p>Case: {case_name}</p>"
+                "<p>Plotly is not installed. Static PNG thumbnail is available in figures/loss_curve.png.</p>"
+                "</body></html>"
+            ),
+            encoding="utf-8",
+        )
+        (plotly_dir / "embedding_projection.html").write_text(
+            (
+                "<html><body><h3>Embedding Projection</h3>"
+                f"<p>Case: {case_name}</p>"
+                "<p>Plotly is not installed. Static report figures are available in figures/.</p>"
+                "</body></html>"
+            ),
+            encoding="utf-8",
+        )
+        return
+
+    loss_fig = go.Figure(data=[go.Scatter(x=x, y=y, mode="lines", name="loss")])
+    loss_fig.update_layout(
+        title=f"Training Curves — {case_name}",
+        xaxis_title="Epoch",
+        yaxis_title="Loss",
+        template="plotly_white",
+        margin=dict(l=30, r=20, t=50, b=40),
     )
-    (plotly_dir / "embedding_projection.html").write_text(
-        (
-            "<html><body><h3>Embedding Projection</h3>"
-            f"<p>Case: {case_name}</p>"
-            "<p>Interactive embedding plot is not yet enabled; use static report figures.</p>"
-            "</body></html>"
-        ),
-        encoding="utf-8",
+    loss_fig.write_html(
+        plotly_dir / "training_curves.html",
+        include_plotlyjs=True,
+        full_html=True,
+        config={"responsive": True, "displaylogo": False},
+    )
+
+    x_points = np.arange(y_true.shape[0])
+    embedding_fig = go.Figure(
+        data=[
+            go.Scattergl(
+                x=x_points,
+                y=mapped_pred,
+                mode="markers",
+                marker={"size": 5, "opacity": 0.75, "color": y_true, "colorscale": "Viridis"},
+                text=[f"true={int(t)} pred={int(p)}" for t, p in zip(y_true, mapped_pred, strict=True)],
+                hovertemplate="%{text}<extra></extra>",
+                name="samples",
+            )
+        ]
+    )
+    embedding_fig.update_layout(
+        title=f"Label Projection (sample index vs mapped class) — {case_name}",
+        xaxis_title="Sample index",
+        yaxis_title="Mapped predicted class",
+        template="plotly_white",
+        margin=dict(l=30, r=20, t=50, b=40),
+    )
+    embedding_fig.write_html(
+        plotly_dir / "embedding_projection.html",
+        include_plotlyjs=True,
+        full_html=True,
+        config={"responsive": True, "displaylogo": False},
     )

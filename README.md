@@ -195,11 +195,16 @@ If credentials are missing, this project intentionally falls back to simulated r
 
 ## Modal-first usage notes (Phase 3 starter)
 
-- The default example config (`experiments/configs/example_baseline.yaml`) is a **real clustering test** (`task_type: clustering`, `dataset_name: density_bridge`) and defaults to `compute_target.backend: local`.
+- The default example config (`experiments/configs/example_baseline.yaml`) is a **real clustering test** across the synthetic challenge suite (`task_type: clustering`, `dataset_name: synthetic-suite`) with comparator controls enabled (`umap_hdbscan`, `hdbscan`, `control_on`) and defaults to `compute_target.backend: local`.
 - `ModalRunner` preserves the existing run artifact contract and writes Modal metadata to:
   - `collect_metadata.json`
   - `logs/modal_runner.log`
 - Without credentials, backend queueing uses safe **simulated** mode while keeping the locally produced real metrics/reports intact for iPhone triage.
+- Modal observability now includes explicit proof fields for:
+  - whether Modal service was actually used (`modal_service_used`),
+  - requested hardware (`instance_type` and `accelerator`),
+  - runner wait duration in seconds,
+  - exact missing credential names (useful when GitHub Secrets mapping is wrong).
 - `run-experiment` now supports iPhone-friendly control inputs for:
   - optional `seed_override`
   - `max_retries` + `retry_delay_seconds`
@@ -217,9 +222,15 @@ outputs/runs/<RUN_ID>/
   metrics.csv
   metrics.json
   config_frozen.yaml
+  case_metrics.csv
+  comparator_metrics.csv
+  comparator_metrics.json
   logs/
     train.log
     eval.log
+    comparators.log
+    orchestration.log
+    modal_runner.log   # if backend=modal
   figures/
     loss_curve.png
     confusion_matrix.png
@@ -249,6 +260,10 @@ If a run "looks fake", check these artifacts in order:
 5. `collect_metadata.json` (for `backend=modal`)
    - `mode=credentialed` means Modal tokens were present.
    - `mode=simulated` means Modal orchestration fallback was used (the clustering itself still ran locally and produced real metrics/artifacts).
+   - `modal_service_used` tells you if remote Modal execution actually happened.
+   - `requested_hardware` records requested hardware profile.
+   - `duration_seconds` records total runner duration.
+   - `missing_credentials` lists exactly which credential names failed validation.
 
 ### Quick terminal checks
 
