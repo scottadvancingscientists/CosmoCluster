@@ -25,6 +25,7 @@ def main() -> None:
     train_log_path = run_dir / "logs/train.log"
     eval_log_path = run_dir / "logs/eval.log"
     orchestration_log_path = run_dir / "logs/orchestration.log"
+    comparators_log_path = run_dir / "logs/comparators.log"
     collect_metadata_path = run_dir / "collect_metadata.json"
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
@@ -34,6 +35,7 @@ def main() -> None:
     orchestration_log = (
         orchestration_log_path.read_text(encoding="utf-8") if orchestration_log_path.exists() else ""
     )
+    comparators_log = comparators_log_path.read_text(encoding="utf-8") if comparators_log_path.exists() else ""
     collect_metadata = (
         json.loads(collect_metadata_path.read_text(encoding="utf-8"))
         if collect_metadata_path.exists()
@@ -47,6 +49,8 @@ def main() -> None:
         ("train.log contains real clustering marker", "real synthetic clustering run" in train_log),
         ("train.log includes fit_seconds", "fit_seconds=" in train_log),
         ("eval.log contains purity/f1 marker", "purity=" in eval_log and "f1=" in eval_log),
+        ("comparators.log exists", comparators_log_path.exists()),
+        ("comparators.log contains comparator marker", "algorithm=" in comparators_log),
         ("orchestration.log contains attempt record", "attempt=" in orchestration_log and "status=" in orchestration_log),
         (
             "metrics include accuracy/f1/loss/latency_ms",
@@ -63,6 +67,8 @@ def main() -> None:
                     "collect_metadata.mode is credentialed or simulated",
                     collect_metadata.get("mode") in {"credentialed", "simulated"},
                 ),
+                ("collect_metadata has modal_service_used", "modal_service_used" in collect_metadata),
+                ("collect_metadata has requested_hardware", "requested_hardware" in collect_metadata),
                 ("collect_metadata has modal job_id", str(collect_metadata.get("job_id", "")).startswith("modal-")),
             ]
         )
