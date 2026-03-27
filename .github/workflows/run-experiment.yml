@@ -10,7 +10,7 @@ on:
       backend:
         description: Backend to use (local/modal/gcp)
         required: true
-        default: modal
+        default: local
       seed_override:
         description: Optional seed override (integer)
         required: false
@@ -38,7 +38,7 @@ on:
       allow_demo_config:
         description: Allow demo/dummy/synthetic config (not recommended)
         required: false
-        default: "true"
+        default: "false"
 
 permissions:
   actions: read
@@ -123,7 +123,7 @@ jobs:
         run: |
           BACKEND_INPUT="${{ github.event.inputs.backend }}"
           if [ -z "$BACKEND_INPUT" ]; then
-            BACKEND_INPUT="${DEFAULT_BACKEND:-modal}"
+            BACKEND_INPUT="${DEFAULT_BACKEND:-local}"
           fi
           SEED_OVERRIDE_ARG=""
           if [ -n "${{ github.event.inputs.seed_override }}" ]; then

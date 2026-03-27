@@ -14,10 +14,19 @@ def generate_run_report(run_dir: Path) -> Path:
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     metrics = json.loads((run_dir / "metrics.json").read_text(encoding="utf-8"))
     summary_md = (run_dir / "run_summary.md").read_text(encoding="utf-8")
+    collect_metadata = None
+    collect_path = run_dir / "collect_metadata.json"
+    if collect_path.exists():
+        collect_metadata = json.loads(collect_path.read_text(encoding="utf-8"))
 
     env = Environment(loader=FileSystemLoader("reports/templates"))
     template = env.get_template("run_report.html.j2")
-    html = template.render(manifest=manifest, metrics=metrics, summary_md=summary_md)
+    html = template.render(
+        manifest=manifest,
+        metrics=metrics,
+        summary_md=summary_md,
+        collect_metadata=collect_metadata,
+    )
 
     report_dir = run_dir / "report"
     report_dir.mkdir(parents=True, exist_ok=True)

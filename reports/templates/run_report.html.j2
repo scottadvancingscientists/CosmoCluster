@@ -33,6 +33,23 @@
     </section>
 
     <section class="card">
+      <h2 style="margin-top:0">Execution proof</h2>
+      <ul>
+        <li><strong>Backend:</strong> {{ manifest.backend }}</li>
+        <li><strong>Attempts:</strong> {{ manifest.orchestration.attempts }} / {{ manifest.orchestration.max_retries + 1 }} max tries</li>
+        <li><strong>Queue timeout:</strong> {{ manifest.orchestration.queue_timeout_seconds }} seconds</li>
+        {% if collect_metadata %}
+        <li><strong>Modal mode:</strong> {{ collect_metadata.mode }}</li>
+        <li><strong>Modal job id:</strong> {{ collect_metadata.job_id }}</li>
+        {% endif %}
+      </ul>
+      <p class="muted">
+        Verify in artifacts: <code>logs/train.log</code>, <code>logs/eval.log</code>, <code>logs/orchestration.log</code>,
+        and <code>collect_metadata.json</code> (Modal).
+      </p>
+    </section>
+
+    <section class="card">
       <h2 style="margin-top:0">Summary</h2>
       <pre>{{ summary_md }}</pre>
     </section>
